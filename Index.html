@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>リアルタイムHTMLエディタ</title>
+  <style>
+    body { display: flex; gap: 20px; padding: 20px; }
+    textarea { width: 45%; height: 80vh; }
+    iframe { width: 50%; height: 80vh; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <textarea id="editor" placeholder="ここにHTMLを書いてください"></textarea>
+  <iframe id="preview"></iframe>
+
+  <script>
+    const editor = document.getElementById('editor');
+    const preview = document.getElementById('preview');
+
+    editor.addEventListener('input', () => {
+      const content = editor.value;
+      preview.srcdoc = content;
+    });
+  </script>
+</body>
+</html>
