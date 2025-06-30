@@ -2,41 +2,100 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>リアルタイムHTMLエディタ</title>
+  <title>VSCode風エディタ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- CodeMirror CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.css">
   <style>
     body {
       margin: 0;
-      padding: 0;
+      font-family: sans-serif;
       display: flex;
       height: 100vh;
       background: #1e1e1e;
       color: white;
-      font-family: sans-serif;
+      overflow: hidden;
     }
-    #editor { width: 50%; height: 100vh; }
-    #preview { width: 50%; height: 100vh; border: none; background: white; }
+    #sidebar {
+      width: 220px;
+      background: #252526;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    #files {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .file {
+      padding: 6px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .file:hover {
+      background: #333;
+    }
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    #toolbar {
+      background: #333;
+      padding: 6px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    #toolbar input {
+      background: #1e1e1e;
+      border: 1px solid #555;
+      color: white;
+      padding: 4px;
+    }
+    #editorContainer {
+      flex: 1;
+    }
     .CodeMirror {
       height: 100%;
-      font-size: 16px;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
-  <textarea id="editor" placeholder="ここにHTMLを書いてください"></textarea>
-  <iframe id="preview"></iframe>
+  <div id="sidebar">
+    <div><strong>エクスプローラー</strong></div>
+    <div id="files"></div>
+    <button onclick="createFile()">＋ファイル作成</button>
+  </div>
+  <div id="main">
+    <div id="toolbar">
+      <span>ファイル名: </span>
+      <input type="text" id="filename" value="index.html">
+      <button onclick="saveFile()">保存</button>
+    </div>
+    <div id="editorContainer">
+      <textarea id="editor"></textarea>
+    </div>
+  </div>
 
-  <!-- CodeMirror ライブラリ -->
+  <!-- CodeMirror JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closetag.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/html-hint.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.css">
-
   <script>
-    const editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+    const filesContainer = document.getElementById('files');
+    const fileInput = document.getElementById('filename');
+    let currentFile = fileInput.value;
+
+    const defaultContent = '<!DOCTYPE html>\n<html lang="ja">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>新規ファイル</title>\n</head>\n<body>\n\n</body>\n</html>';
+
+    const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
       mode: "htmlmixed",
       theme: "material-darker",
       lineNumbers: true,
@@ -44,8 +103,6 @@
       extraKeys: {
         "Ctrl-Space": "autocomplete",
         "Tab": function(cm) {
-          const cursor = cm.getCursor();
-          const token = cm.getTokenAt(cursor);
           if (cm.state.completionActive) {
             return CodeMirror.commands.pickCompletion(cm);
           } else {
@@ -55,12 +112,45 @@
       }
     });
 
-    const preview = document.getElementById("preview");
+    // 初期読み込み
+    loadFiles();
+    if (!localStorage.getItem(currentFile)) {
+      localStorage.setItem(currentFile, defaultContent);
+    }
+    editor.setValue(localStorage.getItem(currentFile));
 
-    editor.on("change", () => {
-      const content = editor.getValue();
-      preview.srcdoc = content;
-    });
+    function loadFiles() {
+      filesContainer.innerHTML = '';
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          const div = document.createElement('div');
+          div.className = 'file';
+          div.textContent = key;
+          div.onclick = () => {
+            currentFile = key;
+            fileInput.value = key;
+            editor.setValue(localStorage.getItem(key));
+          };
+          filesContainer.appendChild(div);
+        }
+      }
+    }
+
+    function saveFile() {
+      const name = fileInput.value.trim();
+      if (!name) return;
+      localStorage.setItem(name, editor.getValue());
+      loadFiles();
+      currentFile = name;
+    }
+
+    function createFile() {
+      const name = prompt("ファイル名を入力:", "new.html");
+      if (name && !localStorage.getItem(name)) {
+        localStorage.setItem(name, defaultContent);
+        loadFiles();
+      }
+    }
   </script>
 </body>
 </html>
