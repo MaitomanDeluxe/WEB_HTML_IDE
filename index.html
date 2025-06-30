@@ -34,9 +34,39 @@
       padding: 6px 10px;
       cursor: pointer;
       border-radius: 4px;
+      position: relative;
     }
     .file:hover {
       background: #333;
+    }
+    .file.active {
+      background: #444;
+    }
+    .file-options {
+      display: none;
+      position: absolute;
+      right: 10px;
+      top: 6px;
+      cursor: pointer;
+    }
+    .file.active .file-options {
+      display: inline;
+    }
+    .file-menu {
+      background: #333;
+      color: white;
+      position: absolute;
+      right: 0;
+      top: 24px;
+      border: 1px solid #555;
+      z-index: 100;
+    }
+    .file-menu div {
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+    .file-menu div:hover {
+      background: #555;
     }
     #main {
       flex: 1;
@@ -49,12 +79,24 @@
       display: flex;
       gap: 8px;
       align-items: center;
+      justify-content: space-between;
     }
     #toolbar input {
       background: #1e1e1e;
       border: 1px solid #555;
       color: white;
       padding: 4px;
+    }
+    .btn {
+      background: #0e639c;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: #1177bb;
     }
     #editorContainer {
       flex: 1;
@@ -69,13 +111,16 @@
   <div id="sidebar">
     <div><strong>エクスプローラー</strong></div>
     <div id="files"></div>
-    <button onclick="createFile()">＋ファイル作成</button>
+    <button class="btn" onclick="createFile()">＋ファイル作成</button>
   </div>
   <div id="main">
     <div id="toolbar">
-      <span>ファイル名: </span>
-      <input type="text" id="filename" value="index.html">
-      <button onclick="saveFile()">保存</button>
+      <div>
+        <span>ファイル名: </span>
+        <input type="text" id="filename" value="index.html">
+        <button class="btn" onclick="saveFile()">💾 保存</button>
+      </div>
+      <button class="btn" onclick="togglePreviewTab()">👁 プレビュー</button>
     </div>
     <div id="editorContainer">
       <textarea id="editor"></textarea>
@@ -92,6 +137,7 @@
     const filesContainer = document.getElementById('files');
     const fileInput = document.getElementById('filename');
     let currentFile = fileInput.value;
+    let activeMenu = null;
 
     const defaultContent = '<!DOCTYPE html>\n<html lang="ja">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>新規ファイル</title>\n</head>\n<body>\n\n</body>\n</html>';
 
@@ -112,27 +158,70 @@
       }
     });
 
-    // 初期読み込み
-    loadFiles();
-    if (!localStorage.getItem(currentFile)) {
-      localStorage.setItem(currentFile, defaultContent);
-    }
-    editor.setValue(localStorage.getItem(currentFile));
-
     function loadFiles() {
       filesContainer.innerHTML = '';
+      const fileMap = {};
       for (let key in localStorage) {
         if (localStorage.hasOwnProperty(key)) {
+          const segments = key.split("/");
+          const displayName = segments.join("/");
           const div = document.createElement('div');
           div.className = 'file';
-          div.textContent = key;
+          div.textContent = displayName;
+
+          const menu = document.createElement('span');
+          menu.className = 'file-options';
+          menu.textContent = '...';
+          menu.onclick = (e) => {
+            e.stopPropagation();
+            if (activeMenu) activeMenu.remove();
+            const menuDiv = document.createElement('div');
+            menuDiv.className = 'file-menu';
+            ['書き出し', '削除', '複製'].forEach(action => {
+              const item = document.createElement('div');
+              item.textContent = action;
+              item.onclick = () => handleFileAction(action, key);
+              menuDiv.appendChild(item);
+            });
+            div.appendChild(menuDiv);
+            activeMenu = menuDiv;
+          };
+
+          div.appendChild(menu);
+
           div.onclick = () => {
             currentFile = key;
             fileInput.value = key;
             editor.setValue(localStorage.getItem(key));
+            document.querySelectorAll('.file').forEach(el => el.classList.remove('active'));
+            div.classList.add('active');
           };
+
           filesContainer.appendChild(div);
         }
+      }
+    }
+
+    function handleFileAction(action, key) {
+      if (action === '削除') {
+        if (confirm(`${key} を削除しますか？`)) {
+          localStorage.removeItem(key);
+          loadFiles();
+        }
+      } else if (action === '複製') {
+        const copyKey = key.replace(/(\.\w+)$/, '_copy$1');
+        localStorage.setItem(copyKey, localStorage.getItem(key));
+        loadFiles();
+      } else if (action === '書き出し') {
+        const blob = new Blob([localStorage.getItem(key)], {type: 'text/plain'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = key;
+        a.click();
+      }
+      if (activeMenu) {
+        activeMenu.remove();
+        activeMenu = null;
       }
     }
 
@@ -145,12 +234,25 @@
     }
 
     function createFile() {
-      const name = prompt("ファイル名を入力:", "new.html");
+      const name = prompt("ファイル名を入力 (例: folder/name.html):", "new.html");
       if (name && !localStorage.getItem(name)) {
         localStorage.setItem(name, defaultContent);
         loadFiles();
       }
     }
+
+    function togglePreviewTab() {
+      const previewWindow = window.open();
+      previewWindow.document.write(editor.getValue());
+      previewWindow.document.close();
+    }
+
+    // 初期読み込み
+    loadFiles();
+    if (!localStorage.getItem(currentFile)) {
+      localStorage.setItem(currentFile, defaultContent);
+    }
+    editor.setValue(localStorage.getItem(currentFile));
   </script>
 </body>
 </html>
