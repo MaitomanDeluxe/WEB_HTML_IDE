@@ -30,44 +30,6 @@
       flex: 1;
       overflow-y: auto;
     }
-    .file {
-      padding: 6px 10px;
-      cursor: pointer;
-      border-radius: 4px;
-      position: relative;
-    }
-    .file:hover {
-      background: #333;
-    }
-    .file.active {
-      background: #444;
-    }
-    .file-options {
-      display: none;
-      position: absolute;
-      right: 10px;
-      top: 6px;
-      cursor: pointer;
-    }
-    .file.active .file-options {
-      display: inline;
-    }
-    .file-menu {
-      background: #333;
-      color: white;
-      position: absolute;
-      right: 0;
-      top: 24px;
-      border: 1px solid #555;
-      z-index: 100;
-    }
-    .file-menu div {
-      padding: 4px 8px;
-      cursor: pointer;
-    }
-    .file-menu div:hover {
-      background: #555;
-    }
     #main {
       flex: 1;
       display: flex;
@@ -83,6 +45,10 @@
       align-items: center;
       justify-content: space-between;
       box-sizing: border-box;
+    }
+    #editorContainer {
+      flex: 1;
+      min-height: 0;
     }
     #toolbar input {
       background: #1e1e1e;
@@ -103,10 +69,6 @@
     .btn:hover {
       background: #1177bb;
     }
-    #editorContainer {
-      flex: 1;
-      min-height: 0;
-    }
     .CodeMirror {
       height: 100%;
       font-size: 14px;
@@ -115,7 +77,25 @@
   </style>
 </head>
 <body>
-  <textarea id="editor"></textarea>
+  <div id="sidebar">
+    <div><strong>エクスプローラー</strong></div>
+    <div id="files"></div>
+    <button class="btn" onclick="alert('ファイル作成未実装')">＋ファイル作成</button>
+  </div>
+  <div id="main">
+    <div id="toolbar">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <span>ファイル名:</span>
+        <input type="text" id="filename" value="index.html">
+        <button class="btn" onclick="alert('保存未実装')">💾 保存</button>
+      </div>
+      <button class="btn" onclick="previewHTML()">👁 プレビュー</button>
+    </div>
+    <div id="editorContainer">
+      <textarea id="editor"></textarea>
+    </div>
+  </div>
+
   <!-- CodeMirror JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
@@ -140,6 +120,8 @@
       }
     });
 
+    editor.setValue('<!DOCTYPE html>\n<html lang="ja">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Document</title>\n</head>\n<body>\n\n</body>\n</html>');
+
     editor.on("beforeChange", function(cm, change) {
       if (change.origin === "+input" && change.text.length === 1) {
         const char = change.text[0];
@@ -156,7 +138,6 @@
     editor.on("inputRead", function(cm, change) {
       if (change.text[0] === ">") {
         const cursor = cm.getCursor();
-        const token = cm.getTokenAt(cursor);
         const line = cm.getLine(cursor.line);
         const match = line.slice(0, cursor.ch).match(/<([a-zA-Z0-9]+)>$/);
         if (match) {
@@ -166,6 +147,13 @@
         }
       }
     });
+
+    function previewHTML() {
+      const html = editor.getValue();
+      const w = window.open();
+      w.document.write(html);
+      w.document.close();
+    }
   </script>
 </body>
 </html>
