@@ -2,16 +2,35 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>XAS ⇄ HTML 変換ツール</title>
+  <title>XAS ⇄ HTML 変換ツール + エクスプローラー</title>
   <style>
     body {
       font-family: sans-serif;
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 20px;
+      height: 100vh;
+      margin: 0;
       background: #1e1e1e;
       color: #fff;
+    }
+    #sidebar {
+      width: 250px;
+      background: #2c2c2c;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      transition: all 0.3s;
+    }
+    #sidebar.hidden {
+      width: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #main {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
     }
     textarea {
       width: 100%;
@@ -26,84 +45,150 @@
       background: #0e639c;
       color: white;
       border: none;
-      padding: 8px 16px;
+      padding: 6px 12px;
       cursor: pointer;
       border-radius: 4px;
+      margin: 4px 0;
     }
     button:hover {
       background: #1177bb;
     }
+    .folder {
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .file-list {
+      margin-left: 16px;
+    }
+    #toggleSidebar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 999;
+    }
+    #xasInput, #htmlInput, #htmlOutput, #xasOutput {
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <h1>XAS ⇄ HTML 変換ツール</h1>
+  <button id="toggleSidebar">📂</button>
+  <div id="sidebar">
+    <button onclick="addItem()">＋ 追加</button>
+    <button onclick="importFile()">📥 インポート</button>
+    <div id="explorer"></div>
+  </div>
 
-  <label for="xasInput">XAS入力:</label>
-  <textarea id="xasInput" placeholder="XASコードを入力..."></textarea>
-  <button onclick="xasToHtml()">⇨ HTMLに変換</button>
-
-  <label for="htmlOutput">HTML出力:</label>
-  <textarea id="htmlOutput" placeholder="変換されたHTML..." readonly></textarea>
-
-  <hr>
-
-  <label for="htmlInput">HTML入力:</label>
-  <textarea id="htmlInput" placeholder="HTMLコードを入力..."></textarea>
-  <button onclick="htmlToXas()">⇦ XASに変換</button>
-
-  <label for="xasOutput">XAS出力:</label>
-  <textarea id="xasOutput" placeholder="変換されたXAS..." readonly></textarea>
+  <div id="main">
+    <h1>XAS Web IDE</h1>
+    <textarea id="xasInput"></textarea>
+    <textarea id="htmlOutput" readonly></textarea>
+    <textarea id="htmlInput"></textarea>
+    <textarea id="xasOutput" readonly></textarea>
+  </div>
 
   <script>
-    let tagMap = {};
-    let reverseTagMap = {};
-    let attrPrefix = "data-";
+    const explorer = document.getElementById('explorer');
+    const toggleSidebar = document.getElementById('toggleSidebar');
+    const sidebar = document.getElementById('sidebar');
 
+    toggleSidebar.onclick = () => sidebar.classList.toggle('hidden');
+
+    let fileTree = JSON.parse(localStorage.getItem('fileTree')) || {
+      "Example": {
+        "example.xas": "<article-block></article-block>"
+      }
+    };
+
+    function saveTree() {
+      localStorage.setItem('fileTree', JSON.stringify(fileTree));
+    }
+
+    function renderTree(tree, parent) {
+      parent.innerHTML = '';
+      for (let key in tree) {
+        if (typeof tree[key] === 'object') {
+          const folder = document.createElement('div');
+          folder.className = 'folder';
+          folder.textContent = '📁 ' + key;
+          const list = document.createElement('div');
+          list.className = 'file-list';
+          folder.onclick = () => list.style.display = list.style.display === 'none' ? 'block' : 'none';
+          renderTree(tree[key], list);
+          parent.appendChild(folder);
+          parent.appendChild(list);
+        } else {
+          const file = document.createElement('div');
+          file.textContent = '📄 ' + key;
+          file.onclick = () => document.getElementById('xasInput').value = tree[key];
+          parent.appendChild(file);
+        }
+      }
+    }
+
+    function addItem() {
+      const name = prompt("ファイルまたはフォルダ名を入力（/でフォルダ指定）:");
+      if (!name) return;
+      const parts = name.split("/");
+      let current = fileTree;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current[parts[i]]) current[parts[i]] = {};
+        current = current[parts[i]];
+      }
+      const last = parts[parts.length - 1];
+      if (last.includes(".")) {
+        current[last] = "";
+      } else {
+        current[last] = {};
+      }
+      saveTree();
+      renderTree(fileTree, explorer);
+    }
+
+    function importFile() {
+      const file = prompt("拡張機能ファイル（xas-import.xasやxas-convert.xasなど）を読み込み:");
+      if (!file) return;
+      alert(`仮想的に拡張機能「${file}」を読み込みました（実装例）`);
+    }
+
+    renderTree(fileTree, explorer);
+
+    let tagMap = {}, reverseTagMap = {}, attrPrefix = "data-";
     fetch("lib/conversion-rules.json")
       .then(res => res.json())
-      .then(config => {
-        tagMap = config.tags;
+      .then(cfg => {
+        tagMap = cfg.tags;
         reverseTagMap = Object.fromEntries(Object.entries(tagMap).map(([k, v]) => [v, k]));
-        attrPrefix = config.attrPrefix || "data-";
+        attrPrefix = cfg.attrPrefix || "data-";
       });
 
     function xasToHtml() {
       let input = document.getElementById('xasInput').value;
       let output = input;
-
       for (let [xasTag, htmlTag] of Object.entries(tagMap)) {
-        const attrRegex = new RegExp(`<${xasTag}([^>]*)>`, 'gi');
-        output = output.replace(attrRegex, (_, attrs) => {
-          return `<${htmlTag}${convertAttrs(attrs)}>`;
-        });
+        output = output.replace(new RegExp(`<${xasTag}([^>]*)>`, 'gi'), (_, a) => `<${htmlTag}${convertAttrs(a)}>`);
         output = output.replace(new RegExp(`</${xasTag}>`, 'gi'), `</${htmlTag}>`);
       }
-
       document.getElementById('htmlOutput').value = output;
     }
 
     function htmlToXas() {
       let input = document.getElementById('htmlInput').value;
       let output = input;
-
       for (let [htmlTag, xasTag] of Object.entries(reverseTagMap)) {
-        const attrRegex = new RegExp(`<${htmlTag}([^>]*)>`, 'gi');
-        output = output.replace(attrRegex, (_, attrs) => {
-          return `<${xasTag}${revertAttrs(attrs)}>`;
-        });
+        output = output.replace(new RegExp(`<${htmlTag}([^>]*)>`, 'gi'), (_, a) => `<${xasTag}${revertAttrs(a)}>`);
         output = output.replace(new RegExp(`</${htmlTag}>`, 'gi'), `</${xasTag}>`);
       }
-
       document.getElementById('xasOutput').value = output;
     }
 
-    function convertAttrs(attrStr) {
-      return attrStr.replace(/\b(\w+)=/g, ` ${attrPrefix}$1=`);
+    function convertAttrs(str) {
+      return str.replace(/\b(\w+)=/g, ` ${attrPrefix}$1=`);
     }
 
-    function revertAttrs(attrStr) {
-      const prefixRegex = new RegExp(`\\b${attrPrefix}(\\w+)=`, 'g');
-      return attrStr.replace(prefixRegex, ' $1=');
+    function revertAttrs(str) {
+      const r = new RegExp(`\b${attrPrefix}(\w+)=`, 'g');
+      return str.replace(r, ' $1=');
     }
   </script>
 </body>
