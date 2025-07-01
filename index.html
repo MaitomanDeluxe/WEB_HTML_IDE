@@ -9,18 +9,24 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.css">
   <style>
+    :root {
+      --background-color: #1e1e1e;
+      --sidebar-color: #252526;
+      --toolbar-color: #333;
+      --font-family: Consolas, 'Courier New', monospace;
+    }
     body {
       margin: 0;
-      font-family: Consolas, 'Courier New', monospace;
+      font-family: var(--font-family);
       display: flex;
       height: 100vh;
-      background: #1e1e1e;
+      background: var(--background-color);
       color: white;
       overflow: hidden;
     }
     #sidebar {
       width: 220px;
-      background: #252526;
+      background: var(--sidebar-color);
       display: flex;
       flex-direction: column;
       padding: 10px;
@@ -37,7 +43,7 @@
       min-width: 0;
     }
     #toolbar {
-      background: #333;
+      background: var(--toolbar-color);
       padding: 6px;
       display: flex;
       flex-wrap: wrap;
@@ -55,7 +61,7 @@
       border: 1px solid #555;
       color: white;
       padding: 4px;
-      font-family: Consolas, 'Courier New', monospace;
+      font-family: var(--font-family);
     }
     .btn {
       background: #0e639c;
@@ -72,7 +78,7 @@
     .CodeMirror {
       height: 100%;
       font-size: 14px;
-      font-family: Consolas, 'Courier New', monospace;
+      font-family: var(--font-family);
     }
   </style>
 </head>
@@ -88,6 +94,7 @@
         <span>ファイル名:</span>
         <input type="text" id="filename" value="index.html">
         <button class="btn" onclick="alert('保存未実装')">💾 保存</button>
+        <input type="file" id="xmlLoader" accept=".xml">
       </div>
       <button class="btn" onclick="previewHTML()">👁 プレビュー</button>
     </div>
@@ -154,6 +161,38 @@
       w.document.write(html);
       w.document.close();
     }
+
+    document.getElementById('xmlLoader').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(evt.target.result, "text/xml");
+        const bg = xmlDoc.querySelector('background')?.textContent;
+        const font = xmlDoc.querySelector('font')?.textContent;
+        const theme = xmlDoc.querySelector('theme')?.textContent;
+        if (bg) document.documentElement.style.setProperty('--background-color', bg);
+        if (font) document.documentElement.style.setProperty('--font-family', font);
+        if (theme && theme === 'light') {
+          editor.setOption("theme", "default");
+        } else {
+          editor.setOption("theme", "material-darker");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // Cmd/Ctrl + Shift + R for hard reload
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'r') {
+        caches.keys().then(keys => {
+          return Promise.all(keys.map(key => caches.delete(key)));
+        }).then(() => {
+          location.reload(true);
+        });
+      }
+    });
   </script>
 </body>
 </html>
