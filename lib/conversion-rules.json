@@ -1,0 +1,10 @@
+{
+  "tags": {
+    "article-block": "article",
+    "header-content": "header",
+    "main-content": "main",
+    "section-block": "section",
+    "footer-content": "footer"
+  },
+  "attrPrefix": "data-"
+}
