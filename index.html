@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>XAS ⇄ HTML 変換ツール + エクスプローラー</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.css">
   <style>
     body {
-      font-family: Consolas, 'Courier New', monospace;
+      font-family: sans-serif;
       display: flex;
       height: 100vh;
       margin: 0;
@@ -32,25 +29,10 @@
     }
     #main {
       flex: 1;
-      display: flex;
-      flex-direction: column;
+      padding: 20px;
       overflow-y: auto;
     }
-    #toolbar {
-      background: #333;
-      padding: 6px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-    }
-    #toolbar input, #toolbar select {
-      background: #1e1e1e;
-      border: 1px solid #555;
-      color: white;
-      padding: 4px;
-    }
-    textarea, .CodeMirror {
+    textarea {
       width: 100%;
       height: 200px;
       background: #2e2e2e;
@@ -66,7 +48,7 @@
       padding: 6px 12px;
       cursor: pointer;
       border-radius: 4px;
-      margin: 4px 4px 4px 0;
+      margin: 4px 0;
     }
     button:hover {
       background: #1177bb;
@@ -84,6 +66,9 @@
       left: 10px;
       z-index: 999;
     }
+    #xasInput, #htmlInput, #htmlOutput, #xasOutput {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -95,35 +80,13 @@
   </div>
 
   <div id="main">
-    <div id="toolbar">
-      <div>
-        <span>ファイル名:</span>
-        <input type="text" id="filename" value="index.html">
-        <input type="file" id="xmlLoader" accept=".xml">
-        <select id="extensionSelector">
-          <option value="">拡張機能を選択</option>
-          <option value="UUID-Generator">UUID Generator</option>
-          <option value="File-Merger">File Merger</option>
-          <option value="Essential-Features">Essential Features</option>
-        </select>
-        <button onclick="applyExtension()">拡張機能適用</button>
-      </div>
-      <button onclick="previewHTML()">👁 プレビュー</button>
-    </div>
+    <h1>XAS Web IDE</h1>
     <textarea id="xasInput"></textarea>
-    <button onclick="xasToHtml()">⇨ HTMLに変換</button>
     <textarea id="htmlOutput" readonly></textarea>
     <textarea id="htmlInput"></textarea>
-    <button onclick="htmlToXas()">⇦ XASに変換</button>
     <textarea id="xasOutput" readonly></textarea>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/xml/xml.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closetag.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/html-hint.min.js"></script>
   <script>
     const explorer = document.getElementById('explorer');
     const toggleSidebar = document.getElementById('toggleSidebar');
@@ -132,7 +95,9 @@
     toggleSidebar.onclick = () => sidebar.classList.toggle('hidden');
 
     let fileTree = JSON.parse(localStorage.getItem('fileTree')) || {
-      "Example": {"example.xas": "<article-block></article-block>"}
+      "Example": {
+        "example.xas": "<article-block></article-block>"
+      }
     };
 
     function saveTree() {
@@ -155,7 +120,7 @@
         } else {
           const file = document.createElement('div');
           file.textContent = '📄 ' + key;
-          file.onclick = () => xasEditor.setValue(tree[key]);
+          file.onclick = () => document.getElementById('xasInput').value = tree[key];
           parent.appendChild(file);
         }
       }
@@ -171,7 +136,11 @@
         current = current[parts[i]];
       }
       const last = parts[parts.length - 1];
-      current[last] = last.includes(".") ? "" : {};
+      if (last.includes(".")) {
+        current[last] = "";
+      } else {
+        current[last] = {};
+      }
       saveTree();
       renderTree(fileTree, explorer);
     }
@@ -194,7 +163,7 @@
       });
 
     function xasToHtml() {
-      let input = xasEditor.getValue();
+      let input = document.getElementById('xasInput').value;
       let output = input;
       for (let [xasTag, htmlTag] of Object.entries(tagMap)) {
         output = output.replace(new RegExp(`<${xasTag}([^>]*)>`, 'gi'), (_, a) => `<${htmlTag}${convertAttrs(a)}>`);
@@ -218,60 +187,9 @@
     }
 
     function revertAttrs(str) {
-      return str.replace(new RegExp(`\b${attrPrefix}(\w+)=`, 'g'), ' $1=');
+      const r = new RegExp(`\b${attrPrefix}(\w+)=`, 'g');
+      return str.replace(r, ' $1=');
     }
-
-    // CodeMirror editor for XAS input
-    const xasEditor = CodeMirror.fromTextArea(document.getElementById('xasInput'), {
-      mode: "htmlmixed",
-      theme: "material-darker",
-      lineNumbers: true,
-      autoCloseTags: true,
-      extraKeys: {
-        "Ctrl-Space": "autocomplete",
-        "Tab": cm => cm.replaceSelection("  ", "end")
-      }
-    });
-
-    function previewHTML() {
-      const html = document.getElementById('htmlOutput').value;
-      const w = window.open();
-      w.document.write(html);
-      w.document.close();
-    }
-
-    function applyExtension() {
-      const value = document.getElementById('extensionSelector').value;
-      if (value === "UUID-Generator") {
-        const uuid = URL.createObjectURL(new Blob([crypto.randomUUID()], { type: 'text/plain' }));
-        window.open(uuid);
-      } else if (value === "File-Merger") {
-        alert('File-Mergerは実装準備中です');
-      } else if (value === "Essential-Features") {
-        alert('Essential Features トグルされました (簡易デモ)');
-      }
-    }
-
-    document.getElementById('xmlLoader').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(evt.target.result, "text/xml");
-        const bg = xmlDoc.querySelector('background')?.textContent;
-        const font = xmlDoc.querySelector('font')?.textContent;
-        const theme = xmlDoc.querySelector('theme')?.textContent;
-        if (bg) document.body.style.background = bg;
-        if (font) document.body.style.fontFamily = font;
-        if (theme && theme === 'light') {
-          xasEditor.setOption("theme", "default");
-        } else {
-          xasEditor.setOption("theme", "material-darker");
-        }
-      };
-      reader.readAsText(file);
-    });
   </script>
 </body>
 </html>
