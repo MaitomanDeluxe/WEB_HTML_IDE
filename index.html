@@ -11,7 +11,7 @@
   <style>
     body {
       margin: 0;
-      font-family: sans-serif;
+      font-family: Consolas, 'Courier New', monospace;
       display: flex;
       height: 100vh;
       background: #1e1e1e;
@@ -89,6 +89,7 @@
       border: 1px solid #555;
       color: white;
       padding: 4px;
+      font-family: Consolas, 'Courier New', monospace;
     }
     .btn {
       background: #0e639c;
@@ -109,29 +110,12 @@
     .CodeMirror {
       height: 100%;
       font-size: 14px;
+      font-family: Consolas, 'Courier New', monospace;
     }
   </style>
 </head>
 <body>
-  <div id="sidebar">
-    <div><strong>エクスプローラー</strong></div>
-    <div id="files"></div>
-    <button class="btn" onclick="createFile()">＋ファイル作成</button>
-  </div>
-  <div id="main">
-    <div id="toolbar">
-      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-        <span>ファイル名: </span>
-        <input type="text" id="filename" value="index.html">
-        <button class="btn" onclick="saveFile()">💾 保存</button>
-      </div>
-      <button class="btn" onclick="togglePreviewTab()">👁 プレビュー</button>
-    </div>
-    <div id="editorContainer">
-      <textarea id="editor"></textarea>
-    </div>
-  </div>
-
+  <textarea id="editor"></textarea>
   <!-- CodeMirror JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
@@ -139,13 +123,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/html-hint.min.js"></script>
   <script>
-    const filesContainer = document.getElementById('files');
-    const fileInput = document.getElementById('filename');
-    let currentFile = fileInput.value;
-    let activeMenu = null;
-
-    const defaultContent = '<!DOCTYPE html>\n<html lang="ja">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>新規ファイル</title>\n</head>\n<body>\n\n</body>\n</html>';
-
     const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
       mode: "htmlmixed",
       theme: "material-darker",
@@ -163,98 +140,32 @@
       }
     });
 
-    function loadFiles() {
-      filesContainer.innerHTML = '';
-      for (let key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
-          const div = document.createElement('div');
-          div.className = 'file';
-          div.textContent = key;
-
-          const menu = document.createElement('span');
-          menu.className = 'file-options';
-          menu.textContent = '...';
-          menu.onclick = (e) => {
-            e.stopPropagation();
-            if (activeMenu) activeMenu.remove();
-            const menuDiv = document.createElement('div');
-            menuDiv.className = 'file-menu';
-            ['書き出し', '削除', '複製'].forEach(action => {
-              const item = document.createElement('div');
-              item.textContent = action;
-              item.onclick = () => handleFileAction(action, key);
-              menuDiv.appendChild(item);
-            });
-            div.appendChild(menuDiv);
-            activeMenu = menuDiv;
-          };
-
-          div.appendChild(menu);
-
-          div.onclick = () => {
-            currentFile = key;
-            fileInput.value = key;
-            editor.setValue(localStorage.getItem(key));
-            document.querySelectorAll('.file').forEach(el => el.classList.remove('active'));
-            div.classList.add('active');
-          };
-
-          filesContainer.appendChild(div);
+    editor.on("beforeChange", function(cm, change) {
+      if (change.origin === "+input" && change.text.length === 1) {
+        const char = change.text[0];
+        if (char === '"' || char === "'") {
+          change.update(null, null, [char + char]);
+          const pos = change.from;
+          setTimeout(() => {
+            cm.setCursor({ line: pos.line, ch: pos.ch + 1 });
+          }, 0);
         }
       }
-    }
+    });
 
-    function handleFileAction(action, key) {
-      if (action === '削除') {
-        if (confirm(`${key} を削除しますか？`)) {
-          localStorage.removeItem(key);
-          loadFiles();
+    editor.on("inputRead", function(cm, change) {
+      if (change.text[0] === ">") {
+        const cursor = cm.getCursor();
+        const token = cm.getTokenAt(cursor);
+        const line = cm.getLine(cursor.line);
+        const match = line.slice(0, cursor.ch).match(/<([a-zA-Z0-9]+)>$/);
+        if (match) {
+          const tag = match[1];
+          cm.replaceRange(`</${tag}>`, cursor);
+          cm.setCursor(cursor);
         }
-      } else if (action === '複製') {
-        const copyKey = key.replace(/(\.\w+)$/, '_copy$1');
-        localStorage.setItem(copyKey, localStorage.getItem(key));
-        loadFiles();
-      } else if (action === '書き出し') {
-        const blob = new Blob([localStorage.getItem(key)], {type: 'text/plain'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = key;
-        a.click();
       }
-      if (activeMenu) {
-        activeMenu.remove();
-        activeMenu = null;
-      }
-    }
-
-    function saveFile() {
-      const name = fileInput.value.trim();
-      if (!name) return;
-      localStorage.setItem(name, editor.getValue());
-      loadFiles();
-      currentFile = name;
-    }
-
-    function createFile() {
-      const name = prompt("ファイル名を入力 (例: folder/name.html):", "new.html");
-      if (name && !localStorage.getItem(name)) {
-        localStorage.setItem(name, defaultContent);
-        loadFiles();
-      }
-    }
-
-    function togglePreviewTab() {
-      const previewWindow = window.open();
-      previewWindow.document.write(editor.getValue());
-      previewWindow.document.close();
-    }
-
-    // 初期読み込み
-    loadFiles();
-    if (!localStorage.getItem(currentFile)) {
-      localStorage.setItem(currentFile, defaultContent);
-    }
-    editor.setValue(localStorage.getItem(currentFile));
+    });
   </script>
 </body>
 </html>
