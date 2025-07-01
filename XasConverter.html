@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>XAS ⇄ HTML 変換ツール</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #fff;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: #2e2e2e;
+      color: #fff;
+      border: 1px solid #555;
+      padding: 10px;
+      font-family: Consolas, 'Courier New', monospace;
+    }
+    button {
+      background: #0e639c;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #1177bb;
+    }
+  </style>
+</head>
+<body>
+  <h1>XAS ⇄ HTML 変換ツール</h1>
+
+  <label for="xasInput">XAS入力:</label>
+  <textarea id="xasInput" placeholder="XASコードを入力..."></textarea>
+  <button onclick="xasToHtml()">⇨ HTMLに変換</button>
+
+  <label for="htmlOutput">HTML出力:</label>
+  <textarea id="htmlOutput" placeholder="変換されたHTML..." readonly></textarea>
+
+  <hr>
+
+  <label for="htmlInput">HTML入力:</label>
+  <textarea id="htmlInput" placeholder="HTMLコードを入力..."></textarea>
+  <button onclick="htmlToXas()">⇦ XASに変換</button>
+
+  <label for="xasOutput">XAS出力:</label>
+  <textarea id="xasOutput" placeholder="変換されたXAS..." readonly></textarea>
+
+  <script>
+    let tagMap = {};
+    let reverseTagMap = {};
+    let attrPrefix = "data-";
+
+    fetch("conversion-rules.json")
+      .then(res => res.json())
+      .then(config => {
+        tagMap = config.tags;
+        reverseTagMap = Object.fromEntries(Object.entries(tagMap).map(([k, v]) => [v, k]));
+        attrPrefix = config.attrPrefix || "data-";
+      });
+
+    function xasToHtml() {
+      let input = document.getElementById('xasInput').value;
+      let output = input;
+
+      for (let [xasTag, htmlTag] of Object.entries(tagMap)) {
+        const attrRegex = new RegExp(`<${xasTag}([^>]*)>`, 'gi');
+        output = output.replace(attrRegex, (_, attrs) => {
+          return `<${htmlTag}${convertAttrs(attrs)}>`;
+        });
+        output = output.replace(new RegExp(`</${xasTag}>`, 'gi'), `</${htmlTag}>`);
+      }
+
+      document.getElementById('htmlOutput').value = output;
+    }
+
+    function htmlToXas() {
+      let input = document.getElementById('htmlInput').value;
+      let output = input;
+
+      for (let [htmlTag, xasTag] of Object.entries(reverseTagMap)) {
+        const attrRegex = new RegExp(`<${htmlTag}([^>]*)>`, 'gi');
+        output = output.replace(attrRegex, (_, attrs) => {
+          return `<${xasTag}${revertAttrs(attrs)}>`;
+        });
+        output = output.replace(new RegExp(`</${htmlTag}>`, 'gi'), `</${xasTag}>`);
+      }
+
+      document.getElementById('xasOutput').value = output;
+    }
+
+    function convertAttrs(attrStr) {
+      return attrStr.replace(/\b(\w+)=/g, ` ${attrPrefix}$1=`);
+    }
+
+    function revertAttrs(attrStr) {
+      const prefixRegex = new RegExp(`\\b${attrPrefix}(\\w+)=`, 'g');
+      return attrStr.replace(prefixRegex, ' $1=');
+    }
+  </script>
+</body>
+</html>
