@@ -2,194 +2,197 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>XAS ⇄ HTML 変換ツール + エクスプローラー</title>
+  <title>VSCode風エディタ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- CodeMirror CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.css">
   <style>
+    :root {
+      --background-color: #1e1e1e;
+      --sidebar-color: #252526;
+      --toolbar-color: #333;
+      --font-family: Consolas, 'Courier New', monospace;
+    }
     body {
-      font-family: sans-serif;
+      margin: 0;
+      font-family: var(--font-family);
       display: flex;
       height: 100vh;
-      margin: 0;
-      background: #1e1e1e;
-      color: #fff;
+      background: var(--background-color);
+      color: white;
+      overflow: hidden;
     }
     #sidebar {
-      width: 250px;
-      background: #2c2c2c;
-      overflow-y: auto;
-      padding: 10px;
+      width: 220px;
+      background: var(--sidebar-color);
       display: flex;
       flex-direction: column;
+      padding: 10px;
       box-sizing: border-box;
-      transition: all 0.3s;
     }
-    #sidebar.hidden {
-      width: 0;
-      padding: 0;
-      overflow: hidden;
+    #files {
+      flex: 1;
+      overflow-y: auto;
     }
     #main {
       flex: 1;
-      padding: 20px;
-      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
     }
-    textarea {
-      width: 100%;
-      height: 200px;
-      background: #2e2e2e;
-      color: #fff;
+    #toolbar {
+      background: var(--toolbar-color);
+      padding: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+    #editorContainer {
+      flex: 1;
+      min-height: 0;
+    }
+    #toolbar input {
+      background: #1e1e1e;
       border: 1px solid #555;
-      padding: 10px;
-      font-family: Consolas, 'Courier New', monospace;
+      color: white;
+      padding: 4px;
+      font-family: var(--font-family);
     }
-    button {
+    .btn {
       background: #0e639c;
       color: white;
       border: none;
-      padding: 6px 12px;
-      cursor: pointer;
+      padding: 5px 10px;
       border-radius: 4px;
-      margin: 4px 0;
+      cursor: pointer;
+      white-space: nowrap;
     }
-    button:hover {
+    .btn:hover {
       background: #1177bb;
     }
-    .folder {
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .file-list {
-      margin-left: 16px;
-    }
-    #toggleSidebar {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 999;
-    }
-    #xasInput, #htmlInput, #htmlOutput, #xasOutput {
-      display: none;
+    .CodeMirror {
+      height: 100%;
+      font-size: 14px;
+      font-family: var(--font-family);
     }
   </style>
 </head>
 <body>
-  <button id="toggleSidebar">📂</button>
   <div id="sidebar">
-    <button onclick="addItem()">＋ 追加</button>
-    <button onclick="importFile()">📥 インポート</button>
-    <div id="explorer"></div>
+    <div><strong>エクスプローラー</strong></div>
+    <div id="files"></div>
+    <button class="btn" onclick="alert('ファイル作成未実装')">＋ファイル作成</button>
   </div>
-
   <div id="main">
-    <h1>XAS Web IDE</h1>
-    <textarea id="xasInput"></textarea>
-    <textarea id="htmlOutput" readonly></textarea>
-    <textarea id="htmlInput"></textarea>
-    <textarea id="xasOutput" readonly></textarea>
+    <div id="toolbar">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <span>ファイル名:</span>
+        <input type="text" id="filename" value="index.html">
+        <button class="btn" onclick="alert('保存未実装')">💾 保存</button>
+        <input type="file" id="xmlLoader" accept=".xml">
+      </div>
+      <button class="btn" onclick="previewHTML()">👁 プレビュー</button>
+    </div>
+    <div id="editorContainer">
+      <textarea id="editor"></textarea>
+    </div>
   </div>
 
+  <!-- CodeMirror JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closetag.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/html-hint.min.js"></script>
   <script>
-    const explorer = document.getElementById('explorer');
-    const toggleSidebar = document.getElementById('toggleSidebar');
-    const sidebar = document.getElementById('sidebar');
-
-    toggleSidebar.onclick = () => sidebar.classList.toggle('hidden');
-
-    let fileTree = JSON.parse(localStorage.getItem('fileTree')) || {
-      "Example": {
-        "example.xas": "<article-block></article-block>"
-      }
-    };
-
-    function saveTree() {
-      localStorage.setItem('fileTree', JSON.stringify(fileTree));
-    }
-
-    function renderTree(tree, parent) {
-      parent.innerHTML = '';
-      for (let key in tree) {
-        if (typeof tree[key] === 'object') {
-          const folder = document.createElement('div');
-          folder.className = 'folder';
-          folder.textContent = '📁 ' + key;
-          const list = document.createElement('div');
-          list.className = 'file-list';
-          folder.onclick = () => list.style.display = list.style.display === 'none' ? 'block' : 'none';
-          renderTree(tree[key], list);
-          parent.appendChild(folder);
-          parent.appendChild(list);
-        } else {
-          const file = document.createElement('div');
-          file.textContent = '📄 ' + key;
-          file.onclick = () => document.getElementById('xasInput').value = tree[key];
-          parent.appendChild(file);
+    const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+      mode: "htmlmixed",
+      theme: "material-darker",
+      lineNumbers: true,
+      autoCloseTags: true,
+      extraKeys: {
+        "Ctrl-Space": "autocomplete",
+        "Tab": function(cm) {
+          if (cm.state.completionActive) {
+            return CodeMirror.commands.pickCompletion(cm);
+          } else {
+            cm.replaceSelection("  ", "end");
+          }
         }
       }
+    });
+
+    editor.setValue('<!DOCTYPE html>\n<html lang="ja">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Document</title>\n</head>\n<body>\n\n</body>\n</html>');
+
+    editor.on("beforeChange", function(cm, change) {
+      if (change.origin === "+input" && change.text.length === 1) {
+        const char = change.text[0];
+        if (char === '"' || char === "'") {
+          change.update(null, null, [char + char]);
+          const pos = change.from;
+          setTimeout(() => {
+            cm.setCursor({ line: pos.line, ch: pos.ch + 1 });
+          }, 0);
+        }
+      }
+    });
+
+    editor.on("inputRead", function(cm, change) {
+      if (change.text[0] === ">") {
+        const cursor = cm.getCursor();
+        const line = cm.getLine(cursor.line);
+        const match = line.slice(0, cursor.ch).match(/<([a-zA-Z0-9]+)>$/);
+        if (match) {
+          const tag = match[1];
+          cm.replaceRange(`</${tag}>`, cursor);
+          cm.setCursor(cursor);
+        }
+      }
+    });
+
+    function previewHTML() {
+      const html = editor.getValue();
+      const w = window.open();
+      w.document.write(html);
+      w.document.close();
     }
 
-    function addItem() {
-      const name = prompt("ファイルまたはフォルダ名を入力（/でフォルダ指定）:");
-      if (!name) return;
-      const parts = name.split("/");
-      let current = fileTree;
-      for (let i = 0; i < parts.length - 1; i++) {
-        if (!current[parts[i]]) current[parts[i]] = {};
-        current = current[parts[i]];
-      }
-      const last = parts[parts.length - 1];
-      if (last.includes(".")) {
-        current[last] = "";
-      } else {
-        current[last] = {};
-      }
-      saveTree();
-      renderTree(fileTree, explorer);
-    }
-
-    function importFile() {
-      const file = prompt("拡張機能ファイル（xas-import.xasやxas-convert.xasなど）を読み込み:");
+    document.getElementById('xmlLoader').addEventListener('change', (e) => {
+      const file = e.target.files[0];
       if (!file) return;
-      alert(`仮想的に拡張機能「${file}」を読み込みました（実装例）`);
-    }
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(evt.target.result, "text/xml");
+        const bg = xmlDoc.querySelector('background')?.textContent;
+        const font = xmlDoc.querySelector('font')?.textContent;
+        const theme = xmlDoc.querySelector('theme')?.textContent;
+        if (bg) document.documentElement.style.setProperty('--background-color', bg);
+        if (font) document.documentElement.style.setProperty('--font-family', font);
+        if (theme && theme === 'light') {
+          editor.setOption("theme", "default");
+        } else {
+          editor.setOption("theme", "material-darker");
+        }
+      };
+      reader.readAsText(file);
+    });
 
-    renderTree(fileTree, explorer);
-
-    let tagMap = {}, reverseTagMap = {}, attrPrefix = "data-";
-    fetch("lib/conversion-rules.json")
-      .then(res => res.json())
-      .then(cfg => {
-        tagMap = cfg.tags;
-        reverseTagMap = Object.fromEntries(Object.entries(tagMap).map(([k, v]) => [v, k]));
-        attrPrefix = cfg.attrPrefix || "data-";
-      });
-
-    function xasToHtml() {
-      let input = document.getElementById('xasInput').value;
-      let output = input;
-      for (let [xasTag, htmlTag] of Object.entries(tagMap)) {
-        output = output.replace(new RegExp(`<${xasTag}([^>]*)>`, 'gi'), (_, a) => `<${htmlTag}${convertAttrs(a)}>`);
-        output = output.replace(new RegExp(`</${xasTag}>`, 'gi'), `</${htmlTag}>`);
+    // Cmd/Ctrl + Shift + R for hard reload
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'r') {
+        caches.keys().then(keys => {
+          return Promise.all(keys.map(key => caches.delete(key)));
+        }).then(() => {
+          location.reload(true);
+        });
       }
-      document.getElementById('htmlOutput').value = output;
-    }
-
-    function htmlToXas() {
-      let input = document.getElementById('htmlInput').value;
-      let output = input;
-      for (let [htmlTag, xasTag] of Object.entries(reverseTagMap)) {
-        output = output.replace(new RegExp(`<${htmlTag}([^>]*)>`, 'gi'), (_, a) => `<${xasTag}${revertAttrs(a)}>`);
-        output = output.replace(new RegExp(`</${htmlTag}>`, 'gi'), `</${xasTag}>`);
-      }
-      document.getElementById('xasOutput').value = output;
-    }
-
-    function convertAttrs(str) {
-      return str.replace(/\b(\w+)=/g, ` ${attrPrefix}$1=`);
-    }
-
-    function revertAttrs(str) {
-      const r = new RegExp(`\b${attrPrefix}(\w+)=`, 'g');
-      return str.replace(r, ' $1=');
-    }
+    });
   </script>
 </body>
 </html>
