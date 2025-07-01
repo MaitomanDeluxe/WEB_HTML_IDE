@@ -72,14 +72,17 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-width: 0;
     }
     #toolbar {
       background: #333;
       padding: 6px;
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       align-items: center;
       justify-content: space-between;
+      box-sizing: border-box;
     }
     #toolbar input {
       background: #1e1e1e;
@@ -94,12 +97,14 @@
       padding: 5px 10px;
       border-radius: 4px;
       cursor: pointer;
+      white-space: nowrap;
     }
     .btn:hover {
       background: #1177bb;
     }
     #editorContainer {
       flex: 1;
+      min-height: 0;
     }
     .CodeMirror {
       height: 100%;
@@ -115,7 +120,7 @@
   </div>
   <div id="main">
     <div id="toolbar">
-      <div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
         <span>ファイル名: </span>
         <input type="text" id="filename" value="index.html">
         <button class="btn" onclick="saveFile()">💾 保存</button>
@@ -160,14 +165,11 @@
 
     function loadFiles() {
       filesContainer.innerHTML = '';
-      const fileMap = {};
       for (let key in localStorage) {
         if (localStorage.hasOwnProperty(key)) {
-          const segments = key.split("/");
-          const displayName = segments.join("/");
           const div = document.createElement('div');
           div.className = 'file';
-          div.textContent = displayName;
+          div.textContent = key;
 
           const menu = document.createElement('span');
           menu.className = 'file-options';
