@@ -1,0 +1,21 @@
+<article-block title="XASエディタ" author="MAITO" date="2025-07-01">
+  <header-content>
+    <h1>XASとは？</h1>
+    <p>HTMLに似た構文で、意味的かつ拡張可能なUI構築を可能にします。</p>
+  </header-content>
+  <main-content>
+    <section-block heading="特徴">
+      <ul>
+        <li>直感的な構文</li>
+        <li>拡張可能なマークアップ</li>
+        <li>JSONでルールを定義</li>
+      </ul>
+    </section-block>
+    <section-block heading="用途例">
+      <p>VSCode拡張、学習用エディタ、構文拡張プロジェクトなど。</p>
+    </section-block>
+  </main-content>
+  <footer-content>
+    <p>&copy; 2025 MAITO PROJECT</p>
+  </footer-content>
+</article-block>
