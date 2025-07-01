@@ -2,16 +2,37 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>XAS ⇄ HTML 変換ツール + エクスプローラー</title>
+  <title>VSCode風エディタ</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" href="favicon.ico">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.min.css">
   <style>
     body {
-      font-family: sans-serif;
+      margin: 0;
+      font-family: Consolas, 'Courier New', monospace;
+      background: #1e1e1e;
+      color: #ffffff;
+      height: 100vh;
+      display: flex;
+      flex-direction: row;
+    }
+    #sidebar {
+      width: 220px;
+      background: #252526;
+      padding: 10px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+    }
+    #editorWrapper {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      margin: 0;
-      background: #1e1e1e;
-      color: #fff;
     }
     #menubar {
       background: #333;
@@ -22,248 +43,110 @@
     }
     .menu {
       cursor: pointer;
-      position: relative;
     }
-    .menu:hover .dropdown {
-      display: block;
-    }
-    .dropdown {
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      background: #444;
-      border: 1px solid #666;
-      min-width: 160px;
-      z-index: 1000;
-    }
-    .dropdown button {
-      display: block;
-      width: 100%;
-      background: none;
-      border: none;
-      text-align: left;
-      padding: 6px 10px;
-      color: white;
-      cursor: pointer;
-    }
-    .dropdown button:hover {
-      background: #555;
-    }
-    #mainContent {
+    #editorContainer {
       flex: 1;
-      display: flex;
-    }
-    #sidebar {
-      width: 250px;
-      background: #2c2c2c;
-      overflow-y: auto;
-      padding: 10px;
       display: flex;
       flex-direction: column;
-      box-sizing: border-box;
-      transition: all 0.3s;
-    }
-    #sidebar.hidden {
-      width: 0;
-      padding: 0;
-      overflow: hidden;
-    }
-    #main {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
-    }
-    textarea {
-      width: 100%;
-      height: 200px;
-      background: #2e2e2e;
-      color: #fff;
-      border: 1px solid #555;
       padding: 10px;
-      font-family: Consolas, 'Courier New', monospace;
     }
-    button {
+    .btn {
       background: #0e639c;
       color: white;
       border: none;
-      padding: 6px 12px;
-      cursor: pointer;
+      padding: 5px 10px;
+      margin-right: 8px;
       border-radius: 4px;
-      margin: 4px 0;
+      cursor: pointer;
     }
-    button:hover {
+    .btn:hover {
       background: #1177bb;
     }
-    .folder {
-      font-weight: bold;
-      cursor: pointer;
+    .CodeMirror-lint-mark-error {
+      background: none;
+      border-bottom: 2px solid red;
     }
-    .file-list {
-      margin-left: 16px;
+    .CodeMirror-lint-mark-warning {
+      background: none;
+      border-bottom: 2px solid yellow;
     }
-    #toggleSidebar {
-      position: absolute;
-      top: 50px;
-      left: 10px;
-      z-index: 999;
-    }
-    #xasInput, #htmlInput, #htmlOutput, #xasOutput {
-      display: block;
-      margin-bottom: 10px;
-    }
-    .editor-label {
-      font-weight: bold;
-      margin-top: 10px;
-    }
-    .highlight-color {
-      border-bottom: 2px solid currentColor;
+    input[type="text"], textarea {
+      background: #1e1e1e;
+      color: white;
+      border: 1px solid #555;
     }
   </style>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/xml/xml.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js"></script>
 </head>
 <body>
-  <div id="menubar">
-    <div class="menu">ファイル</div>
-    <div class="menu">編集</div>
-    <div class="menu">選択</div>
-    <div class="menu">表示</div>
-    <div class="menu">移動</div>
-    <div class="menu">
-      拡張機能
-      <div class="dropdown">
-        <button onclick="toggleColorHighlight()">Color Highlight オン/オフ</button>
+  <div id="sidebar">
+    <div><strong>エクスプローラー</strong></div>
+    <div id="fileList"></div>
+  </div>
+  <div id="editorWrapper">
+    <div id="menubar">
+      <div class="menu" onclick="newFile()">ファイル</div>
+      <div class="menu" onclick="undoEdit()">編集</div>
+      <div class="menu" onclick="selectAll()">選択</div>
+      <div class="menu" onclick="toggleTheme()">表示</div>
+      <div class="menu" onclick="moveCursor()">移動</div>
+      <div class="menu" onclick="toggleColorHighlight()">拡張機能</div>
+    </div>
+    <div id="editorContainer">
+      <div style="margin-bottom: 10px;">
+        <button class="btn" onclick="importFile()">📥 インポート</button>
+        <button class="btn" onclick="saveFile()">💾 保存</button>
+        <button class="btn" onclick="previewHTML()">👁 プレビュー</button>
       </div>
-    </div>
-  </div>
-  <button id="toggleSidebar">📂</button>
-  <div id="mainContent">
-    <div id="sidebar">
-      <button onclick="addItem()">＋ 追加</button>
-      <button onclick="importFile()">📥 インポート</button>
-      <div id="explorer"></div>
-    </div>
-
-    <div id="main">
-      <h1>XAS Web IDE</h1>
-      <div class="editor-label">XAS ➝ HTML</div>
-      <textarea id="xasInput"></textarea>
-      <div class="editor-label">変換結果 (HTML)</div>
-      <textarea id="htmlOutput" readonly></textarea>
-      <div class="editor-label">HTML ➝ XAS</div>
-      <textarea id="htmlInput"></textarea>
-      <div class="editor-label">変換結果 (XAS)</div>
-      <textarea id="xasOutput" readonly></textarea>
+      <textarea id="editor"></textarea>
     </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closetag.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/html-lint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/javascript-lint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/css-lint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/htmlhint/0.11.0/htmlhint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jshint/2.13.4/jshint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/csslint/1.0.5/csslint.min.js"></script>
   <script>
-    const explorer = document.getElementById('explorer');
-    const toggleSidebar = document.getElementById('toggleSidebar');
-    const sidebar = document.getElementById('sidebar');
+    let editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+      lineNumbers: true,
+      mode: "htmlmixed",
+      theme: "material-darker",
+      autoCloseTags: true,
+      matchBrackets: true,
+      lint: true,
+      gutters: ["CodeMirror-lint-markers"],
+      indentUnit: 2,
+      indentWithTabs: false,
+    });
 
-    toggleSidebar.onclick = () => sidebar.classList.toggle('hidden');
-
-    let fileTree = JSON.parse(localStorage.getItem('fileTree')) || {
-      "Example": {
-        "example.xas": "<article-block></article-block>"
-      }
-    };
-
-    function saveTree() {
-      localStorage.setItem('fileTree', JSON.stringify(fileTree));
+    function newFile() {
+      editor.setValue("<!DOCTYPE html>\n<html lang=\"ja\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>新規ファイル</title>\n</head>\n<body>\n\n</body>\n</html>");
     }
 
-    function renderTree(tree, parent) {
-      parent.innerHTML = '';
-      for (let key in tree) {
-        if (typeof tree[key] === 'object') {
-          const folder = document.createElement('div');
-          folder.className = 'folder';
-          folder.textContent = '📁 ' + key;
-          const list = document.createElement('div');
-          list.className = 'file-list';
-          folder.onclick = () => list.style.display = list.style.display === 'none' ? 'block' : 'none';
-          renderTree(tree[key], list);
-          parent.appendChild(folder);
-          parent.appendChild(list);
-        } else {
-          const file = document.createElement('div');
-          file.textContent = '📄 ' + key;
-          file.onclick = () => document.getElementById('xasInput').value = tree[key];
-          parent.appendChild(file);
-        }
-      }
+    function undoEdit() {
+      editor.undo();
     }
 
-    function addItem() {
-      const name = prompt("ファイルまたはフォルダ名を入力（/でフォルダ指定）:");
-      if (!name) return;
-      const parts = name.split("/");
-      let current = fileTree;
-      for (let i = 0; i < parts.length - 1; i++) {
-        if (!current[parts[i]]) current[parts[i]] = {};
-        current = current[parts[i]];
-      }
-      const last = parts[parts.length - 1];
-      if (last.includes(".")) {
-        current[last] = "";
-      } else {
-        current[last] = {};
-      }
-      saveTree();
-      renderTree(fileTree, explorer);
+    function selectAll() {
+      editor.execCommand("selectAll");
     }
 
-    function importFile() {
-      const file = prompt("拡張機能ファイル（xas-import.xasやxas-convert.xasなど）を読み込み:");
-      if (!file) return;
-      alert(`仮想的に拡張機能「${file}」を読み込みました（実装例）`);
+    function toggleTheme() {
+      const theme = editor.getOption("theme") === "default" ? "material-darker" : "default";
+      editor.setOption("theme", theme);
     }
 
-    renderTree(fileTree, explorer);
-
-    let tagMap = {}, reverseTagMap = {}, attrPrefix = "data-";
-    fetch("lib/conversion-rules.json")
-      .then(res => res.json())
-      .then(cfg => {
-        tagMap = cfg.tags;
-        reverseTagMap = Object.fromEntries(Object.entries(tagMap).map(([k, v]) => [v, k]));
-        attrPrefix = cfg.attrPrefix || "data-";
-      });
-
-    function xasToHtml() {
-      let input = document.getElementById('xasInput').value;
-      let output = input;
-      for (let [xasTag, htmlTag] of Object.entries(tagMap)) {
-        output = output.replace(new RegExp(`<${xasTag}([^>]*)>`, 'gi'), (_, a) => `<${htmlTag}${convertAttrs(a)}>`);
-        output = output.replace(new RegExp(`</${xasTag}>`, 'gi'), `</${htmlTag}>`);
-      }
-      document.getElementById('htmlOutput').value = output;
-    }
-
-    function htmlToXas() {
-      let input = document.getElementById('htmlInput').value;
-      let output = input;
-      for (let [htmlTag, xasTag] of Object.entries(reverseTagMap)) {
-        output = output.replace(new RegExp(`<${htmlTag}([^>]*)>`, 'gi'), (_, a) => `<${xasTag}${revertAttrs(a)}>`);
-        output = output.replace(new RegExp(`</${htmlTag}>`, 'gi'), `</${xasTag}>`);
-      }
-      document.getElementById('xasOutput').value = output;
-    }
-
-    function convertAttrs(str) {
-      return str.replace(/\b(\w+)=/g, ` ${attrPrefix}$1=`);
-    }
-
-    function revertAttrs(str) {
-      const r = new RegExp(`\b${attrPrefix}(\w+)=`, 'g');
-      return str.replace(r, ' $1=');
+    function moveCursor() {
+      editor.setCursor({ line: 0, ch: 0 });
+      editor.focus();
     }
 
     function toggleColorHighlight() {
@@ -274,34 +157,51 @@
       } else {
         style = document.createElement("style");
         style.id = styleId;
-        style.textContent = `
-          .cm-s-default span.cm-number,
-          .cm-s-default span.cm-atom,
-          .cm-s-default span.cm-string {
-            border-bottom: 2px solid currentColor;
-          }
-        `;
+        style.textContent = `.cm-string, .cm-number, .cm-atom { border-bottom: 2px solid currentColor; }`;
         document.head.appendChild(style);
       }
     }
 
-    // CodeMirror setup
-    function setupCodeMirror(id, mode) {
-      const textarea = document.getElementById(id);
-      const cm = CodeMirror.fromTextArea(textarea, {
-        lineNumbers: true,
-        mode,
-        theme: "default"
-      });
-      return cm;
+    editor.on("inputRead", (cm, change) => {
+      if (change.text[0] === '>') {
+        const cur = cm.getCursor();
+        const token = cm.getTokenAt({ line: cur.line, ch: cur.ch });
+        const tagMatch = cm.getLine(cur.line).slice(0, cur.ch).match(/<([a-zA-Z0-9]+)>$/);
+        if (tagMatch) {
+          const tag = tagMatch[1];
+          cm.replaceRange(`</${tag}>`, cm.getCursor());
+        }
+      }
+    });
+
+    function importFile() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.html,.js,.css,.txt';
+      input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => editor.setValue(ev.target.result);
+        reader.readAsText(file);
+      };
+      input.click();
     }
 
-    window.onload = () => {
-      setupCodeMirror('xasInput', 'htmlmixed');
-      setupCodeMirror('htmlInput', 'htmlmixed');
-      setupCodeMirror('htmlOutput', 'htmlmixed');
-      setupCodeMirror('xasOutput', 'htmlmixed');
-    };
+    function saveFile() {
+      const format = confirm("OKで.html、キャンセルで.txtとして保存") ? "html" : "txt";
+      const blob = new Blob([editor.getValue()], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `download.${format}`;
+      a.click();
+    }
+
+    function previewHTML() {
+      const win = window.open();
+      win.document.write(editor.getValue());
+      win.document.close();
+    }
   </script>
 </body>
 </html>
