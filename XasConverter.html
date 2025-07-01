@@ -59,7 +59,7 @@
     let reverseTagMap = {};
     let attrPrefix = "data-";
 
-    fetch("conversion-rules.json")
+    fetch("lib/conversion-rules.json")
       .then(res => res.json())
       .then(config => {
         tagMap = config.tags;
