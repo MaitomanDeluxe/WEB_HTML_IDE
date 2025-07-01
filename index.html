@@ -56,7 +56,7 @@
       flex: 1;
       min-height: 0;
     }
-    #toolbar input {
+    #toolbar input, #toolbar select {
       background: #1e1e1e;
       border: 1px solid #555;
       color: white;
@@ -93,8 +93,14 @@
       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
         <span>ファイル名:</span>
         <input type="text" id="filename" value="index.html">
-        <button class="btn" onclick="alert('保存未実装')">💾 保存</button>
         <input type="file" id="xmlLoader" accept=".xml">
+        <select id="extensionSelector">
+          <option value="">拡張機能を選択</option>
+          <option value="UUID-Generator">UUID Generator</option>
+          <option value="File-Merger">File Merger</option>
+          <option value="Essential-Features">Essential Features</option>
+        </select>
+        <button class="btn" onclick="applyExtension()">拡張機能適用</button>
       </div>
       <button class="btn" onclick="previewHTML()">👁 プレビュー</button>
     </div>
@@ -106,6 +112,10 @@
   <!-- CodeMirror JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/python/python.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closetag.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/html-hint.min.js"></script>
@@ -129,37 +139,24 @@
 
     editor.setValue('<!DOCTYPE html>\n<html lang="ja">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Document</title>\n</head>\n<body>\n\n</body>\n</html>');
 
-    editor.on("beforeChange", function(cm, change) {
-      if (change.origin === "+input" && change.text.length === 1) {
-        const char = change.text[0];
-        if (char === '"' || char === "'") {
-          change.update(null, null, [char + char]);
-          const pos = change.from;
-          setTimeout(() => {
-            cm.setCursor({ line: pos.line, ch: pos.ch + 1 });
-          }, 0);
-        }
-      }
-    });
-
-    editor.on("inputRead", function(cm, change) {
-      if (change.text[0] === ">") {
-        const cursor = cm.getCursor();
-        const line = cm.getLine(cursor.line);
-        const match = line.slice(0, cursor.ch).match(/<([a-zA-Z0-9]+)>$/);
-        if (match) {
-          const tag = match[1];
-          cm.replaceRange(`</${tag}>`, cursor);
-          cm.setCursor(cursor);
-        }
-      }
-    });
-
     function previewHTML() {
       const html = editor.getValue();
       const w = window.open();
       w.document.write(html);
       w.document.close();
+    }
+
+    function applyExtension() {
+      const value = document.getElementById('extensionSelector').value;
+      if (value === "UUID-Generator") {
+        const uuid = URL.createObjectURL(new Blob([crypto.randomUUID()], { type: 'text/plain' }));
+        window.open(uuid);
+      } else if (value === "File-Merger") {
+        alert('File-Mergerは実装準備中です');
+      } else if (value === "Essential-Features") {
+        document.body.classList.toggle('rainbow-indent');
+        alert('Essential Features トグルされました (簡易デモ)');
+      }
     }
 
     document.getElementById('xmlLoader').addEventListener('change', (e) => {
