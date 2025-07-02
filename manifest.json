@@ -1,13 +1,20 @@
 {
-  "name": "XAS-EDITOR",
-  "short_name": "Web IDE",
-  "start_url": "./index.html",
+  "name": "WEB HTML IDE",
+  "short_name": "IDE",
   "display": "standalone",
+  "start_url": "./",
   "background_color": "#1e1e1e",
   "theme_color": "#1e1e1e",
-  "orientation": "any",
   "icons": [
-    {"src":"lib/favicon-5.png","sizes":"192x192","type":"image/png"},
-    {"src":"lib/favicon-7.png","sizes":"512x512","type":"image/png"}
+    {
+      "src": "lib/app-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "lib/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
