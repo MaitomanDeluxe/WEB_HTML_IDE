@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>自作検索ページ + DevTools</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      background: #f8f9fa;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    #searchInput {
+      flex: 1;
+      padding: 8px;
+      font-size: 16px;
+    }
+    #searchBtn {
+      padding: 8px 16px;
+      font-size: 16px;
+    }
+    #results {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      background: #fff;
+    }
+    .result {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
+    footer {
+      background: #1e1e1e;
+      color: #fff;
+      padding: 10px;
+      font-size: 14px;
+    }
+    #console, #domView, #styleEditor {
+      display: none;
+      margin-top: 10px;
+      background: #2d2d2d;
+      padding: 10px;
+      color: #fff;
+    }
+    #console input, #styleEditor textarea {
+      width: 100%;
+      background: #1e1e1e;
+      color: #0f0;
+      font-family: monospace;
+      font-size: 14px;
+      border: none;
+      outline: none;
+      padding: 5px;
+    }
+    #tabs {
+      margin-top: 10px;
+    }
+    #tabs button {
+      margin-right: 5px;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+    #log {
+      white-space: pre-wrap;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <input type="text" id="searchInput" placeholder="検索ワードを入力..." />
+  <button id="searchBtn">検索</button>
+</header>
+
+<div id="results"></div>
+
+<footer>
+  <div id="tabs">
+    <button onclick="showTab('console')">Console</button>
+    <button onclick="showTab('domView')">DOM</button>
+    <button onclick="showTab('styleEditor')">Style</button>
+  </div>
+
+  <div id="console">
+    <input id="consoleInput" placeholder="JavaScript を入力して Enter" />
+    <div id="log"></div>
+  </div>
+
+  <div id="domView"></div>
+
+  <div id="styleEditor">
+    <textarea id="styleTextarea" rows="5">body { background: #fff; }</textarea>
+    <button onclick="applyStyle()">スタイル適用</button>
+  </div>
+</footer>
+
+<script>
+  const dummyResults = [
+    { title: "ChatGPTとは", desc: "ChatGPTはOpenAIが開発した対話型AIです。" },
+    { title: "GitHubとは", desc: "GitHubはソースコードのバージョン管理サービスです。" },
+    { title: "HTMLとは", desc: "HTMLはWebページを作るためのマークアップ言語です。" },
+    { title: "JavaScriptとは", desc: "JavaScriptはWebを動かすためのスクリプト言語です。" },
+    { title: "iPadで開発するには", desc: "iPad上でもHTML/JS開発は可能です。" }
+  ];
+
+  const resultsDiv = document.getElementById("results");
+  const searchBtn = document.getElementById("searchBtn");
+  const searchInput = document.getElementById("searchInput");
+
+  searchBtn.onclick = () => {
+    const keyword = searchInput.value.trim();
+    resultsDiv.innerHTML = "";
+    const filtered = dummyResults.filter(r =>
+      r.title.includes(keyword) || r.desc.includes(keyword)
+    );
+    if (filtered.length === 0) {
+      resultsDiv.innerHTML = "<p>検索結果がありませんでした。</p>";
+    } else {
+      for (const r of filtered) {
+        const el = document.createElement("div");
+        el.className = "result";
+        el.innerHTML = `<strong>${r.title}</strong><p>${r.desc}</p>`;
+        resultsDiv.appendChild(el);
+      }
+    }
+    updateDOMViewer();
+  };
+
+  // 開発者ツールのタブ切替
+  function showTab(id) {
+    ["console", "domView", "styleEditor"].forEach(tab => {
+      document.getElementById(tab).style.display = tab === id ? "block" : "none";
+    });
+  }
+
+  // Console 機能
+  const consoleInput = document.getElementById("consoleInput");
+  const logDiv = document.getElementById("log");
+  consoleInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      try {
+        const result = eval(consoleInput.value);
+        logDiv.textContent += "> " + consoleInput.value + "\n" + result + "\n";
+      } catch (err) {
+        logDiv.textContent += "> " + consoleInput.value + "\n" + err + "\n";
+      }
+      consoleInput.value = "";
+    }
+  });
+
+  // DOMビューア機能
+  function updateDOMViewer() {
+    const domView = document.getElementById("domView");
+    const elements = document.querySelectorAll("#results .result");
+    domView.innerHTML = "<strong>検索結果のDOMツリー:</strong><ul style='padding-left:10px'>";
+    elements.forEach(el => {
+      domView.innerHTML += `<li>&lt;div class="result"&gt; → ${el.querySelector("strong")?.textContent}</li>`;
+    });
+    domView.innerHTML += "</ul>";
+  }
+
+  // Style Editor機能
+  function applyStyle() {
+    const css = document.getElementById("styleTextarea").value;
+    let styleTag = document.getElementById("custom-style");
+    if (!styleTag) {
+      styleTag = document.createElement("style");
+      styleTag.id = "custom-style";
+      document.head.appendChild(styleTag);
+    }
+    styleTag.innerHTML = css;
+  }
+
+  // 初期描画
+  searchBtn.click();
+</script>
+
+</body>
+</html>
