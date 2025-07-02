@@ -1,8 +1,8 @@
 {
   "name": "WEB HTML IDE",
-  "short_name": "IDE",
+  "short_name": "HTML IDE",
+  "start_url": "./index.html",
   "display": "standalone",
-  "start_url": "./",
   "background_color": "#1e1e1e",
   "theme_color": "#1e1e1e",
   "icons": [
@@ -12,7 +12,7 @@
       "type": "image/png"
     },
     {
-      "src": "lib/app-icon-512.png",
+      "src": "lib/app-icon.png",
       "sizes": "512x512",
       "type": "image/png"
     }
