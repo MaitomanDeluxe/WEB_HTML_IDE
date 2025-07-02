@@ -2,16 +2,16 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>VSCode風エディタ</title>
+  <title>XAS-EDITOR</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="lib/app-icon.png">
   <link rel="apple-touch-startup-image" href="lib/splash.png" media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2)">
-  <link rel="apple-touch-startup-image" href="lib/splash.png"
-    media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2)">
-  <link rel="icon" href="/favicon.ico">
+  <link rel="icon" href="favicon.ico">
   <link rel="manifest" href="manifest.json">
+
+  <!-- CodeMirror CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.min.css">
@@ -31,7 +31,6 @@
       padding: 10px;
       box-sizing: border-box;
       overflow-y: auto;
-      transition: transform 0.3s ease;
     }
     #editorWrapper {
       flex: 1;
@@ -105,6 +104,7 @@
     </div>
   </div>
 
+  <!-- CodeMirror JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
@@ -119,22 +119,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jshint/2.13.4/jshint.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/csslint/1.0.5/csslint.min.js"></script>
   <script>
-
-      if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').then(reg => {
-      reg.onupdatefound = () => {
-        const newWorker = reg.installing;
-        newWorker.onstatechange = () => {
-          if (newWorker.state === 'installed') {
-            if (navigator.serviceWorker.controller) {
-              console.log('新しいバージョンが利用可能です。再読み込みしてください。');
-            }
-          }
-        };
-      };
-    });
-  }
-    
     let editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
       lineNumbers: true,
       mode: "htmlmixed",
