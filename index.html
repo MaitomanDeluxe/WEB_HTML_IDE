@@ -20,6 +20,17 @@
   <link rel="icon" type="image/png" sizes="192x192" href="lib/favicon-5.png">
   <link rel="icon" type="image/png" sizes="256x256" href="lib/favicon-6.png">
   <link rel="icon" type="image/png" sizes="512x512" href="lib/favicon-7.png">
+  <link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(() => console.log("✅ Service Worker registered"))
+        .catch(err => console.warn("⚠️ SW registration failed", err));
+    });
+  }
+</script>
+
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
