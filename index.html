@@ -6,49 +6,15 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="lib/apple-touch-icon.png">
-  <link rel="icon" href="lib/favicon.ico">
-  <link rel="icon" href="lib/fav.png">
-  <link rel="icon" type="image/x-icon" href="lib/favicon.ico">
-  <link rel="icon" type="image/png" href="libfavicon.png">
-
+  <link rel="apple-touch-icon" href="lib/app-icon.png">
   <link rel="apple-touch-startup-image" href="lib/splash.png"
-  media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2)">
-
-
-
-  <!-- 基本のfavicon -->
-  <link rel="icon" type="image/png" sizes="16x16" href="lib/favicon-1.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="lib/favicon-2.png">
-  <link rel="icon" type="image/png" sizes="48x48" href="lib/favicon-3.png">
-  <link rel="icon" type="image/png" sizes="96x96" href="lib/favicon-4.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="lib/favicon-5.png">
-  <link rel="icon" type="image/png" sizes="256x256" href="lib/favicon-6.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="lib/favicon-7.png">
+    media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2)">
+  <link rel="icon" href="favicon.ico">
   <link rel="manifest" href="manifest.json">
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(() => console.log("✅ Service Worker registered"))
-        .catch(err => console.warn("⚠️ SW registration failed", err));
-    });
-  }
-</script>
-
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.min.css">
   <style>
-      #splash {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background: black url("lib/load.png") center center no-repeat;
-    background-size: cover;
-    z-index: 9999;
-  }
     body {
       margin: 0;
       font-family: Consolas, 'Courier New', monospace;
@@ -202,7 +168,6 @@
     editor.on("inputRead", (cm, change) => {
       if (change.text[0] === '>') {
         const cur = cm.getCursor();
-        const token = cm.getTokenAt({ line: cur.line, ch: cur.ch });
         const tagMatch = cm.getLine(cur.line).slice(0, cur.ch).match(/<([a-zA-Z0-9]+)>$/);
         if (tagMatch) {
           const tag = tagMatch[1];
