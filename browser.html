@@ -1,194 +1,135 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>検索 + Chrome風 DevTools</title>
+  <meta charset="UTF-8">
+  <title>検索 + DevTools + URL/HTMLローダー</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script async src="https://cse.google.com/cse.js?cx=e0faba4ac67e7479a"></script>
   <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-    }
+    body { margin: 0; font-family: sans-serif; }
+    header { background: #f8f9fa; padding: 10px; font-size: 18px; text-align: center; }
+    .gcse-search { padding: 20px; }
+    #urlLoader { padding: 10px; background: #f0f0f0; text-align: center; }
+    #urlInput { width: 60%; padding: 6px; font-size: 14px; }
+    #openUrlBtn { padding: 6px 10px; font-size: 14px; }
+    iframe#urlFrame { width: 100%; height: 300px; border: none; }
 
-    header {
-      background: #f8f9fa;
-      padding: 10px;
-      font-size: 18px;
-      text-align: center;
-    }
-
-    .gcse-search {
-      padding: 20px;
-    }
-
-    /* DevTools Overlay */
     #devtools {
-      position: fixed;
-      top: 0;
-      right: 0;
-      width: 350px;
-      height: 100%;
-      background: #1e1e1e;
-      color: #fff;
-      font-size: 13px;
-      display: none;
-      flex-direction: column;
-      z-index: 9999;
-      box-shadow: -2px 0 5px rgba(0,0,0,0.3);
+      position: fixed; top: 0; right: 0; width: 350px; height: 100%;
+      background: #1e1e1e; color: #fff; font-size: 13px; display: none;
+      flex-direction: column; z-index: 9999; box-shadow: -2px 0 5px rgba(0,0,0,0.3);
     }
-
-    #devtools header {
-      background: #333;
-      padding: 8px 10px;
-      font-weight: bold;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    #devtools header button {
-      background: #444;
-      color: #fff;
-      border: none;
-      padding: 3px 8px;
-      cursor: pointer;
-    }
-
-    #tabs {
-      display: flex;
-      border-bottom: 1px solid #555;
-    }
-
-    #tabs button {
-      flex: 1;
-      padding: 8px;
-      background: #2d2d2d;
-      border: none;
-      color: #ccc;
-      cursor: pointer;
-    }
-
-    #tabs button.active {
-      background: #1e1e1e;
-      color: #fff;
-      font-weight: bold;
-    }
-
-    .tab-content {
-      flex: 1;
-      padding: 10px;
-      overflow-y: auto;
-    }
-
-    #consoleInput {
-      width: 100%;
-      background: #000;
-      color: #0f0;
-      font-family: monospace;
-      border: none;
-      padding: 5px;
-    }
-
-    #logOutput, #perfOutput {
-      white-space: pre-wrap;
-      font-family: monospace;
-      color: #ccc;
-      margin-top: 10px;
-    }
+    #devtools header { background: #333; padding: 8px 10px; font-weight: bold; display: flex; justify-content: space-between; }
+    #devtools header button { background: #444; color: #fff; border: none; padding: 3px 8px; cursor: pointer; }
+    #tabs { display: flex; border-bottom: 1px solid #555; }
+    #tabs button { flex: 1; padding: 8px; background: #2d2d2d; border: none; color: #ccc; cursor: pointer; }
+    #tabs button.active { background: #1e1e1e; color: #fff; font-weight: bold; }
+    .tab-content { flex: 1; padding: 10px; overflow-y: auto; }
+    #consoleInput { width: 100%; background: #000; color: #0f0; font-family: monospace; border: none; padding: 5px; }
+    #logOutput, #perfOutput, #htmlPreview { white-space: pre-wrap; font-family: monospace; color: #ccc; margin-top: 10px; }
   </style>
 </head>
 <body>
+  <header>Google Programmable Search + DevTools + ローダー</header>
+  <div class="gcse-search"></div>
 
-<header>実検索ページ（Google Programmable Search + DevTools）</header>
-<div class="gcse-search"></div>
-
-<!-- DevTools Overlay -->
-<div id="devtools">
-  <header>
-    DevTools
-    <button onclick="toggleDevTools()">×</button>
-  </header>
-  <div id="tabs">
-    <button onclick="showTab('console')" class="active">Console</button>
-    <button onclick="showTab('log')">Log</button>
-    <button onclick="showTab('perf')">Performance</button>
+  <div id="urlLoader">
+    <input id="urlInput" placeholder="URLを入力 (https://...)" />
+    <button id="openUrlBtn">開く</button>
+    <iframe id="urlFrame"></iframe>
   </div>
-  <div class="tab-content" id="consoleTab">
-    <input id="consoleInput" placeholder="JavaScript を入力して Enter" />
-    <div id="consoleOutput"></div>
-  </div>
-  <div class="tab-content" id="logTab" style="display:none;">
-    <div id="logOutput">[ログ出力なし]</div>
-  </div>
-  <div class="tab-content" id="perfTab" style="display:none;">
-    <div id="perfOutput">読み込み時間などを計測中...</div>
-  </div>
-</div>
 
-<script>
-  let devVisible = false;
+  <div id="devtools">
+    <header>
+      DevTools <button onclick="toggleDevTools()">×</button>
+    </header>
+    <div id="tabs">
+      <button onclick="showTab('console')" class="active">Console</button>
+      <button onclick="showTab('log')">Log</button>
+      <button onclick="showTab('perf')">Performance</button>
+      <button onclick="showTab('html')">HTML読込</button>
+    </div>
+    <div class="tab-content" id="consoleTab">
+      <input id="consoleInput" placeholder="JavaScript を入力して Enter" />
+      <div id="consoleOutput"></div>
+    </div>
+    <div class="tab-content" id="logTab" style="display:none;">
+      <div id="logOutput">[ログ出力なし]</div>
+    </div>
+    <div class="tab-content" id="perfTab" style="display:none;">
+      <div id="perfOutput">読み込み中...</div>
+    </div>
+    <div class="tab-content" id="htmlTab" style="display:none;">
+      <input type="file" id="htmlFile" accept=".html,.htm,text/html" />
+      <iframe id="htmlPreview" style="width:100%;height:300px;border:none;"></iframe>
+    </div>
+  </div>
 
-  function toggleDevTools() {
-    devVisible = !devVisible;
-    document.getElementById("devtools").style.display = devVisible ? "flex" : "none";
-  }
-
-  document.addEventListener("keydown", e => {
-    if (e.key === "0") {
-      toggleDevTools();
+  <script>
+    let devVisible = false;
+    function toggleDevTools() {
+      devVisible = !devVisible;
+      document.getElementById("devtools").style.display = devVisible ? "flex" : "none";
     }
-  });
+    document.addEventListener("keydown", e => { if (e.key === "0") toggleDevTools(); });
+    function showTab(tabName) {
+      ["console", "log", "perf", "html"].forEach(name => {
+        document.getElementById(name + "Tab").style.display = name === tabName ? "block" : "none";
+        document.querySelector(`#tabs button:nth-child(${["console", "log", "perf", "html"].indexOf(name)+1})`)
+          .classList.toggle("active", name === tabName);
+      });
+    }
 
-  function showTab(tabName) {
-    const tabs = ["console", "log", "perf"];
-    tabs.forEach(name => {
-      document.getElementById(name + "Tab").style.display = name === tabName ? "block" : "none";
-      document.querySelector(`#tabs button:nth-child(${tabs.indexOf(name)+1})`)
-        .classList.toggle("active", name === tabName);
-    });
-  }
-
-  // Console 機能
-  const consoleInput = document.getElementById("consoleInput");
-  const consoleOutput = document.getElementById("consoleOutput");
-  const logOutput = document.getElementById("logOutput");
-
-  const logs = [];
-
-  consoleInput.addEventListener("keydown", e => {
-    if (e.key === "Enter") {
-      const code = consoleInput.value;
-      try {
-        const result = eval(code);
-        const out = `> ${code}\n${result}`;
-        logs.push(out);
-        consoleOutput.textContent += out + "\n";
-        logOutput.textContent = logs.join("\n");
-      } catch (err) {
-        const out = `> ${code}\n${err}`;
-        logs.push(out);
-        consoleOutput.textContent += out + "\n";
-        logOutput.textContent = logs.join("\n");
+    const logs = [], consoleInput = document.getElementById("consoleInput"),
+      consoleOutput = document.getElementById("consoleOutput"), logOutput = document.getElementById("logOutput");
+    consoleInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        const code = consoleInput.value;
+        try {
+          const result = eval(code);
+          const out = `> ${code}\n${typeof result === "undefined" ? "undefined" : result}`;
+          logs.push(out);
+          consoleOutput.textContent += out + "\n";
+          logOutput.textContent = logs.join("\n");
+        } catch (err) {
+          const out = `> ${code}\n${err}`;
+          logs.push(out);
+          consoleOutput.textContent += out + "\n";
+          logOutput.textContent = logs.join("\n");
+        }
+        consoleInput.value = "";
       }
-      consoleInput.value = "";
+    });
+
+    function updatePerf() {
+      const t = performance.timing;
+      const dcl = t.domContentLoadedEventEnd - t.navigationStart;
+      const load = t.loadEventEnd - t.navigationStart;
+      const now = performance.now().toFixed(1);
+      document.getElementById("perfOutput").textContent =
+        `経過時間: ${now} ms\nDOMContentLoaded: ${dcl} ms\n完全読込: ${load} ms`;
     }
-  });
+    setInterval(updatePerf, 1000);
 
-  // Performance 情報
-  function updatePerf() {
-    const timing = performance.timing;
-    const domContentLoaded = timing.domContentLoadedEventEnd - timing.navigationStart;
-    const load = timing.loadEventEnd - timing.navigationStart;
-    const now = performance.now().toFixed(1);
+    document.getElementById("openUrlBtn").onclick = () => {
+      const url = document.getElementById("urlInput").value;
+      if (url.startsWith("http")) {
+        document.getElementById("urlFrame").src = url;
+      }
+    };
 
-    document.getElementById("perfOutput").textContent =
-      `ページ読み込みからの経過時間: ${now} ms\n` +
-      `DOMContentLoaded: ${domContentLoaded} ms\n` +
-      `ページ完全読み込み: ${load} ms`;
-  }
-
-  setInterval(updatePerf, 1000);
-</script>
-
+    document.getElementById("htmlFile").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const blob = new Blob([event.target.result], {type: "text/html"});
+          const url = URL.createObjectURL(blob);
+          document.getElementById("htmlPreview").src = url;
+        };
+        reader.readAsText(file);
+      }
+    });
+  </script>
 </body>
 </html>
