@@ -1,7 +1,7 @@
 {
-  "name": "VSCode風エディタ",
-  "short_name": "VSCode Editor",
-  "description": "ブラウザで使えるVSCode風コードエディタ",
+  "name": "XAS-EDITOR",
+  "short_name": "XAS Editor",
+  "description": "ブラウザで使えるHTMLエディター",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#1e1e1e",
@@ -9,22 +9,22 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "favicon-1.png",
+      "src": "lib/favicon-1.png",
       "sizes": "16x16",
       "type": "image/png"
     },
     {
-      "src": "favicon-2.png",
+      "src": "lib/favicon-2.png",
       "sizes": "32x32",
       "type": "image/png"
     },
     {
-      "src": "favicon-5.png",
+      "src": "lib/favicon-5.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "favicon-7.png",
+      "src": "lib/favicon-7.png",
       "sizes": "512x512",
       "type": "image/png"
     }
