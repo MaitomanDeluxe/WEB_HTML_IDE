@@ -7,12 +7,24 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="lib/app-icon.png">
-  <link rel="apple-touch-startup-image" href="lib/splash.png" media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2)">
+  <link rel="apple-touch-startup-image" href="lib/splash.png">
   <link rel="icon" href="favicon.ico">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/html-lint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closetag.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/selection/active-line.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/comment/comment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/searchcursor.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/search.min.js"></script>
   <style>
     body {
       margin: 0;
@@ -44,24 +56,9 @@
     }
     .menu {
       cursor: pointer;
-    }
-    #fileMenuContent {
-      position: absolute;
-      top: 35px;
-      left: 10px;
-      background: #2d2d2d;
-      border: 1px solid #444;
-      display: none;
-      flex-direction: column;
-      z-index: 1000;
-    }
-    .fileMenuItem {
-      padding: 5px 10px;
+      position: relative;
+      padding: 0 6px;
       color: white;
-      cursor: pointer;
-    }
-    .fileMenuItem:hover {
-      background: #3a3a3a;
     }
     #editorContainer {
       flex: 1;
@@ -98,147 +95,103 @@
 </head>
 <body>
   <div id="sidebar">
-    <div><strong>エクスプローラー</strong></div>
-    <div id="fileList"></div>
+    <!-- サイドバー（ファイル一覧など） -->
   </div>
   <div id="editorWrapper">
     <div id="menubar">
-      <div class="menu" onclick="toggleFileMenu()">ファイル</div>
-      <div class="menu" onclick="undoEdit()">編集</div>
-      <div class="menu" onclick="selectAll()">選択</div>
-      <div class="menu" onclick="toggleTheme()">表示</div>
-      <div class="menu" onclick="moveCursor()">移動</div>
-      <div class="menu" onclick="toggleColorHighlight()">拡張機能</div>
+      <div class="menu" onclick="alert('ファイルメニュー')">ファイル</div>
+      <div class="menu" onclick="runEditCommands()">編集</div>
+      <div class="menu" onclick="runSelectCommands()">選択</div>
+      <div class="menu" onclick="runViewCommands()">表示</div>
+      <div class="menu" onclick="runNavigateCommands()">移動</div>
+      <div class="menu" onclick="alert('拡張機能トグル準備中')">拡張機能</div>
     </div>
-    <div id="fileMenuContent"></div>
     <div id="editorContainer">
-      <div style="margin-bottom: 10px;">
-        <button class="btn" onclick="importFile()">📥 インポート</button>
-        <button class="btn" onclick="saveFile()">💾 保存</button>
-        <button class="btn" onclick="previewHTML()">👁 プレビュー</button>
+      <textarea id="editor">&lt;!-- HTML/CSS/JSをここに書いてください --&gt;</textarea>
+      <div style="margin-top:10px">
+        <button class="btn" onclick="previewCode()">プレビュー</button>
+        <button class="btn" onclick="downloadCode()">保存</button>
       </div>
-      <textarea id="editor"></textarea>
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closetag.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/matchbrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/html-lint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/javascript-lint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/css-lint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/htmlhint/0.11.0/htmlhint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jshint/2.13.4/jshint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/csslint/1.0.5/csslint.min.js"></script>
   <script>
-    const fileMenuItems = [
-      "新しいファイル (New File)", "新しいウィンドウ (New Window)", "ファイルを開く (Open File...)",
-      "フォルダーを開く (Open Folder...)", "ワークスペースからファイルを開く (Open File from Workspace...)",
-      "最近開いたもの (Open Recent)", "ワークスペースを開く (Open Workspace...)",
-      "最近のファイルをクリア (Clear Recently Opened)", "ワークスペースの追加 (Add Folder to Workspace...)",
-      "ワークスペースの保存 (Save Workspace As...)", "ワークスペースを閉じる (Close Workspace)",
-      "保存 (Save)", "すべて保存 (Save All)", "名前を付けて保存 (Save As...)",
-      "変更を元に戻す (Revert File)", "自動保存 (Auto Save)", "印刷 (Print)", "終了 (Exit)"
-    ];
-
-    const fileMenu = document.getElementById("fileMenuContent");
-    let fileMenuVisible = false;
-
-    function toggleFileMenu() {
-      fileMenuVisible = !fileMenuVisible;
-      fileMenu.style.display = fileMenuVisible ? "flex" : "none";
-      fileMenu.innerHTML = fileMenuItems.map(item => `<div class='fileMenuItem'>${item}</div>`).join("");
-    }
-
-    let editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
-      lineNumbers: true,
+    let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
       mode: "htmlmixed",
+      lineNumbers: true,
       theme: "material-darker",
-      autoCloseTags: true,
+      styleActiveLine: true,
       matchBrackets: true,
+      autoCloseTags: true,
       lint: true,
-      gutters: ["CodeMirror-lint-markers"],
-      indentUnit: 2,
-      indentWithTabs: false,
-    });
-
-    function newFile() {
-      editor.setValue("<!DOCTYPE html>\n<html lang=\"ja\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>新規ファイル</title>\n</head>\n<body>\n\n</body>\n</html>");
-    }
-
-    function undoEdit() {
-      editor.undo();
-    }
-
-    function selectAll() {
-      editor.execCommand("selectAll");
-    }
-
-    function toggleTheme() {
-      const theme = editor.getOption("theme") === "default" ? "material-darker" : "default";
-      editor.setOption("theme", theme);
-    }
-
-    function moveCursor() {
-      editor.setCursor({ line: 0, ch: 0 });
-      editor.focus();
-    }
-
-    function toggleColorHighlight() {
-      const styleId = "color-highlight-style";
-      let style = document.getElementById(styleId);
-      if (style) {
-        style.remove();
-      } else {
-        style = document.createElement("style");
-        style.id = styleId;
-        style.textContent = `.cm-string, .cm-number, .cm-atom { border-bottom: 2px solid currentColor; }`;
-        document.head.appendChild(style);
-      }
-    }
-
-    editor.on("inputRead", (cm, change) => {
-      if (change.text[0] === '>') {
-        const cur = cm.getCursor();
-        const tagMatch = cm.getLine(cur.line).slice(0, cur.ch).match(/<([a-zA-Z0-9]+)>$/);
-        if (tagMatch) {
-          const tag = tagMatch[1];
-          cm.replaceRange(`</${tag}>`, cm.getCursor());
+      extraKeys: {
+        "Ctrl-/": "toggleComment",
+        "Ctrl-D": "duplicateLine",
+        "Tab": cm => {
+          if (cm.somethingSelected()) cm.indentSelection("add");
+          else cm.replaceSelection("  ", "end");
+        },
+        "Shift-Tab": cm => {
+          if (cm.somethingSelected()) cm.indentSelection("subtract");
         }
       }
     });
 
-    function importFile() {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.html,.js,.css,.txt';
-      input.onchange = e => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = ev => editor.setValue(ev.target.result);
-        reader.readAsText(file);
-      };
-      input.click();
+    function previewCode() {
+      const blob = new Blob([editor.getValue()], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
     }
 
-    function saveFile() {
-      const format = confirm("OKで.html、キャンセルで.txtとして保存") ? "html" : "txt";
-      const blob = new Blob([editor.getValue()], { type: "text/plain" });
+    function downloadCode() {
+      const content = editor.getValue();
+      const type = confirm("OKでHTMLとして保存、キャンセルでTXTとして保存") ? "text/html" : "text/plain";
+      const extension = type === "text/html" ? ".html" : ".txt";
+      const blob = new Blob([content], { type });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `download.${format}`;
+      a.download = "download" + extension;
       a.click();
     }
 
-    function previewHTML() {
-      const win = window.open();
-      win.document.write(editor.getValue());
-      win.document.close();
+    function runEditCommands() {
+      const cmd = prompt("編集コマンド: undo, redo, cut, copy, paste, selectAll");
+      if (!cmd) return;
+      switch(cmd) {
+        case "undo": editor.undo(); break;
+        case "redo": editor.redo(); break;
+        case "cut": document.execCommand("cut"); break;
+        case "copy": document.execCommand("copy"); break;
+        case "paste": document.execCommand("paste"); break;
+        case "selectAll": editor.execCommand("selectAll"); break;
+        default: alert("未対応のコマンドです");
+      }
+    }
+
+    function runSelectCommands() {
+      const cmd = prompt("選択コマンド: selectAll, selectLine");
+      if (cmd === "selectAll") editor.execCommand("selectAll");
+      else if (cmd === "selectLine") {
+        const cursor = editor.getCursor();
+        editor.setSelection({line:cursor.line,ch:0},{line:cursor.line,ch:editor.getLine(cursor.line).length});
+      }
+    }
+
+    function runViewCommands() {
+      const cmd = prompt("表示コマンド: toggleSidebar, toggleLineNumbers");
+      if (cmd === "toggleSidebar") {
+        sidebar.style.display = sidebar.style.display === "none" ? "block" : "none";
+      } else if (cmd === "toggleLineNumbers") {
+        const showing = editor.getOption("lineNumbers");
+        editor.setOption("lineNumbers", !showing);
+      }
+    }
+
+    function runNavigateCommands() {
+      const cmd = prompt("移動コマンド: goLineTop, goLineEnd");
+      const cursor = editor.getCursor();
+      if (cmd === "goLineTop") editor.setCursor({line:cursor.line, ch:0});
+      else if (cmd === "goLineEnd") editor.setCursor({line:cursor.line, ch:editor.getLine(cursor.line).length});
     }
   </script>
 </body>
