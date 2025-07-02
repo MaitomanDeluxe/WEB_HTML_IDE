@@ -1,12 +1,12 @@
 const CACHE_NAME = 'vscode-editor-cache-v1';
 const urlsToCache = [
   './',
-  './index.html',
-  './manifest.json',
-  './favicon-1.png',
-  './favicon-2.png',
-  './favicon-5.png',
-  './favicon-7.png',
+  '.lib/index.html',
+  '.lib/manifest.json',
+  '.lib/favicon-1.png',
+  '.lib/favicon-2.png',
+  '.lib/favicon-5.png',
+  '.lib/favicon-7.png',
   // 必要なら外部ライブラリやCSSファイルなども記載
 ];
 
