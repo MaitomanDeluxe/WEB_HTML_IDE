@@ -2,197 +2,149 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>VSCode風エディタ</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="lib/app-icon.png">
-  <link rel="apple-touch-startup-image" href="lib/splash.png">
-  <link rel="icon" href="favicon.ico">
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/lint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/lint/html-lint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closetag.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/matchbrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/selection/active-line.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/comment/comment.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/searchcursor.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/search.min.js"></script>
+  <title>Chrome風 IDE + プレビュー + DevTools</title>
   <style>
-    body {
-      margin: 0;
-      font-family: Consolas, 'Courier New', monospace;
-      background: #1e1e1e;
-      color: #ffffff;
-      height: 100vh;
-      display: flex;
-      flex-direction: row;
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: sans-serif; }
+    #container { display: flex; height: 100%; }
+    #editor {
+      width: 35%; background: #fafafa; border-right: 1px solid #ccc;
+      display: flex; flex-direction: column; padding: 10px;
     }
-    #sidebar {
-      width: 220px;
-      background: #252526;
-      padding: 10px;
-      box-sizing: border-box;
-      overflow-y: auto;
+    textarea {
+      width: 100%; height: 30%; margin-bottom: 10px;
+      font-family: monospace; font-size: 14px;
     }
-    #editorWrapper {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
+    button {
+      padding: 8px 12px; font-size: 14px; background: #4285f4;
+      color: white; border: none; cursor: pointer; border-radius: 4px;
     }
-    #menubar {
-      background: #333;
-      padding: 6px 10px;
-      display: flex;
-      gap: 20px;
-      user-select: none;
+    #preview { width: 35%; border: none; }
+    #devtools {
+      width: 30%; background: #202124; color: #e8eaed; display: flex;
+      flex-direction: column; border-left: 1px solid #444;
     }
-    .menu {
-      cursor: pointer;
-      position: relative;
-      padding: 0 6px;
-      color: white;
+    #tabs {
+      display: flex; background: #303134; border-bottom: 1px solid #444;
     }
-    #editorContainer {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
+    #tabs button {
+      flex: 1; padding: 10px; background: none; border: none;
+      color: #ccc; cursor: pointer; border-right: 1px solid #444;
     }
-    .btn {
-      background: #0e639c;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      margin-right: 8px;
-      border-radius: 4px;
-      cursor: pointer;
+    #tabs button.active {
+      background: #202124; color: #fff; font-weight: bold;
     }
-    .btn:hover {
-      background: #1177bb;
+    .tab {
+      flex: 1; padding: 10px; overflow-y: auto;
+      font-family: monospace; font-size: 13px; display: none;
+      background: #202124; color: #e8eaed;
     }
-    .CodeMirror-lint-mark-error {
-      background: none;
-      border-bottom: 2px solid red;
+    .tab.active { display: block; }
+    #consoleInput {
+      width: 100%; background: #000; color: #0f0;
+      border: none; padding: 5px; margin-top: 5px;
+      font-family: monospace;
     }
-    .CodeMirror-lint-mark-warning {
-      background: none;
-      border-bottom: 2px solid yellow;
-    }
-    input[type="text"], textarea {
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #555;
+    #consoleOut, #logOut, #perfOut {
+      white-space: pre-wrap; margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <div id="sidebar">
-    <!-- サイドバー（ファイル一覧など） -->
-  </div>
-  <div id="editorWrapper">
-    <div id="menubar">
-      <div class="menu" onclick="alert('ファイルメニュー')">ファイル</div>
-      <div class="menu" onclick="runEditCommands()">編集</div>
-      <div class="menu" onclick="runSelectCommands()">選択</div>
-      <div class="menu" onclick="runViewCommands()">表示</div>
-      <div class="menu" onclick="runNavigateCommands()">移動</div>
-      <div class="menu" onclick="alert('拡張機能トグル準備中')">拡張機能</div>
-    </div>
-    <div id="editorContainer">
-      <textarea id="editor">&lt;!-- HTML/CSS/JSをここに書いてください --&gt;</textarea>
-      <div style="margin-top:10px">
-        <button class="btn" onclick="previewCode()">プレビュー</button>
-        <button class="btn" onclick="downloadCode()">保存</button>
-      </div>
-    </div>
+<div id="container">
+  <!-- IDE -->
+  <div id="editor">
+    <strong>HTML</strong>
+    <textarea id="htmlInput"><h1>Hello</h1><p>これはテスト</p></textarea>
+    <strong>CSS</strong>
+    <textarea id="cssInput">body { color: blue; }</textarea>
+    <strong>JS</strong>
+    <textarea id="jsInput">console.log("Hello from JS!");</textarea>
+    <button onclick="updatePreview()">▶ 更新</button>
   </div>
 
-  <script>
-    let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
-      mode: "htmlmixed",
-      lineNumbers: true,
-      theme: "material-darker",
-      styleActiveLine: true,
-      matchBrackets: true,
-      autoCloseTags: true,
-      lint: true,
-      extraKeys: {
-        "Ctrl-/": "toggleComment",
-        "Ctrl-D": "duplicateLine",
-        "Tab": cm => {
-          if (cm.somethingSelected()) cm.indentSelection("add");
-          else cm.replaceSelection("  ", "end");
-        },
-        "Shift-Tab": cm => {
-          if (cm.somethingSelected()) cm.indentSelection("subtract");
-        }
-      }
+  <!-- プレビュー -->
+  <iframe id="preview"></iframe>
+
+  <!-- DevTools -->
+  <div id="devtools">
+    <div id="tabs">
+      <button class="active" onclick="showTab('console')">Console</button>
+      <button onclick="showTab('log')">Log</button>
+      <button onclick="showTab('perf')">Performance</button>
+    </div>
+    <div id="console" class="tab active">
+      <input id="consoleInput" placeholder="iframe内でJS実行..." />
+      <div id="consoleOut"></div>
+    </div>
+    <div id="log" class="tab"><div id="logOut"></div></div>
+    <div id="perf" class="tab"><div id="perfOut"></div></div>
+  </div>
+</div>
+
+<script>
+  const preview = document.getElementById("preview");
+  const logOut = document.getElementById("logOut");
+  const perfOut = document.getElementById("perfOut");
+
+  function updatePreview() {
+    const html = document.getElementById("htmlInput").value;
+    const css = document.getElementById("cssInput").value;
+    const js = document.getElementById("jsInput").value;
+
+    const blob = new Blob([`
+      <html><head><style>${css}</style></head>
+      <body>${html}<script>
+        window.onerror = function(msg, url, line, col, error) {
+          parent.postMessage({type: 'error', msg}, '*');
+        };
+        console.log = (...args) => parent.postMessage({type: 'log', args}, '*');
+        console.error = (...args) => parent.postMessage({type: 'error', args}, '*');
+        ${js}
+      <\/script></body></html>
+    `], { type: "text/html" });
+
+    const url = URL.createObjectURL(blob);
+    preview.src = url;
+    start = performance.now();
+  }
+
+  window.addEventListener("message", e => {
+    if (e.data.type === "log") {
+      logOut.textContent += `[LOG] ${e.data.args.join(" ")}\n`;
+    } else if (e.data.type === "error") {
+      logOut.textContent += `[ERROR] ${e.data.msg || e.data.args.join(" ")}\n`;
+    }
+  });
+
+  function showTab(name) {
+    ["console", "log", "perf"].forEach(id => {
+      document.getElementById(id).classList.toggle("active", id === name);
+      document.querySelector(`#tabs button[onclick*='${id}']`).classList.toggle("active", id === name);
     });
+  }
 
-    function previewCode() {
-      const blob = new Blob([editor.getValue()], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-    }
-
-    function downloadCode() {
-      const content = editor.getValue();
-      const type = confirm("OKでHTMLとして保存、キャンセルでTXTとして保存") ? "text/html" : "text/plain";
-      const extension = type === "text/html" ? ".html" : ".txt";
-      const blob = new Blob([content], { type });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "download" + extension;
-      a.click();
-    }
-
-    function runEditCommands() {
-      const cmd = prompt("編集コマンド: undo, redo, cut, copy, paste, selectAll");
-      if (!cmd) return;
-      switch(cmd) {
-        case "undo": editor.undo(); break;
-        case "redo": editor.redo(); break;
-        case "cut": document.execCommand("cut"); break;
-        case "copy": document.execCommand("copy"); break;
-        case "paste": document.execCommand("paste"); break;
-        case "selectAll": editor.execCommand("selectAll"); break;
-        default: alert("未対応のコマンドです");
+  document.getElementById("consoleInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      const code = e.target.value;
+      try {
+        const result = preview.contentWindow.eval(code);
+        document.getElementById("consoleOut").textContent += `> ${code}\n${result}\n`;
+      } catch (err) {
+        document.getElementById("consoleOut").textContent += `> ${code}\n${err}\n`;
       }
+      e.target.value = "";
     }
+  });
 
-    function runSelectCommands() {
-      const cmd = prompt("選択コマンド: selectAll, selectLine");
-      if (cmd === "selectAll") editor.execCommand("selectAll");
-      else if (cmd === "selectLine") {
-        const cursor = editor.getCursor();
-        editor.setSelection({line:cursor.line,ch:0},{line:cursor.line,ch:editor.getLine(cursor.line).length});
-      }
-    }
+  let start = performance.now();
+  setInterval(() => {
+    const elapsed = (performance.now() - start).toFixed(1);
+    perfOut.textContent = `起動からの経過時間: ${elapsed}ms\n` +
+      `DOM Ready: ${document.readyState}`;
+  }, 1000);
 
-    function runViewCommands() {
-      const cmd = prompt("表示コマンド: toggleSidebar, toggleLineNumbers");
-      if (cmd === "toggleSidebar") {
-        sidebar.style.display = sidebar.style.display === "none" ? "block" : "none";
-      } else if (cmd === "toggleLineNumbers") {
-        const showing = editor.getOption("lineNumbers");
-        editor.setOption("lineNumbers", !showing);
-      }
-    }
-
-    function runNavigateCommands() {
-      const cmd = prompt("移動コマンド: goLineTop, goLineEnd");
-      const cursor = editor.getCursor();
-      if (cmd === "goLineTop") editor.setCursor({line:cursor.line, ch:0});
-      else if (cmd === "goLineEnd") editor.setCursor({line:cursor.line, ch:editor.getLine(cursor.line).length});
-    }
-  </script>
+  updatePreview();
+</script>
 </body>
 </html>
